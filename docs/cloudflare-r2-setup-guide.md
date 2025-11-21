@@ -112,6 +112,71 @@ If the config file is small (< 300 MB), you can upload it via the web UI:
 3. Select `frontend/public/demo-data/medical_imaging/ct_scan_config.json`
 4. Upload the file
 
+### Uploading Files > 300 MB (Using S3-Compatible API)
+
+**⚠️ Important**: Both the web UI and Wrangler CLI have a 300 MB limit. For larger files, use the S3-compatible API.
+
+#### Step 1: Get R2 API Credentials
+
+1. Go to Cloudflare Dashboard → **R2** → **Manage R2 API Tokens**
+2. Click **"Create API Token"**
+3. Give it a name (e.g., "R2 Upload Token")
+4. Set permissions: **Object Read & Write**
+5. Click **"Create API Token"**
+6. **Important**: Copy the **Access Key ID** and **Secret Access Key** immediately (you won't see the secret again!)
+
+#### Step 2: Get Your Account ID
+
+1. In Cloudflare Dashboard, go to any page (like Overview)
+2. Your **Account ID** is shown in the right sidebar
+3. Copy it (it's a long alphanumeric string)
+
+#### Step 3: Install Required Python Packages
+
+```bash
+pip3 install boto3 python-dotenv
+```
+
+#### Step 4: Create .env File with Credentials
+
+1. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and fill in your credentials:
+   ```bash
+   # Open .env in your editor
+   nano .env  # or use your preferred editor
+   ```
+
+3. Fill in the values:
+   ```
+   R2_ACCOUNT_ID=your_actual_account_id
+   R2_ACCESS_KEY_ID=your_actual_access_key_id
+   R2_SECRET_ACCESS_KEY=your_actual_secret_access_key
+   ```
+
+   **Important**: The `.env` file is already in `.gitignore` and won't be committed to git.
+
+#### Step 5: Upload Using the Python Script
+
+A helper script `upload_to_r2.py` is included in the repository:
+
+```bash
+python3 upload_to_r2.py \
+  frontend/public/demo-data/medical_imaging/ct_scan.nii.gz \
+  rsna2025-medical-imaging \
+  ct_scan.nii.gz
+```
+
+Replace `rsna2025-medical-imaging` with your actual bucket name.
+
+The script will automatically:
+- Read credentials from `.env` file
+- Use multipart upload for large files (>100 MB)
+- Show upload progress
+
 ### Verify Upload
 
 After uploading, verify both files appear in your bucket:
