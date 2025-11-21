@@ -3,10 +3,10 @@
     "file_path": "/demo-data/medical_imaging/ct_scan.nii.gz",
     "rescale_intercept": -1024,
     "rescale_slope": 1,
-    "indication": "To rule out nodules",
+    "indication": "Persistent dry cough, rule out pulmonary pathology",
     "technique": "CT Chest without IV or oral contrast.",
-    "patient_name": "John Doe",
-    "radiologist_name": "Dr. Jane Smith",
-    "study_date": "2024-01-15"
+    "patient_name": "Robert Vancamp",
+    "radiologist_name": "Dr. Arthur Pendelton",
+    "study_date": "2025-11-28"
   }
 ]

@@ -28,9 +28,12 @@ export default function StyleSettingsTab({ onOpenModal }) {
       try {
         // Use the same reports as prior imaging, but these represent radiologist's prior reports
         const reports = [
-          { filename: 'report_2024_01_15.md', date: '2024-01-15', modality: 'CT Head' },
-          { filename: 'report_2024_06_20.md', date: '2024-06-20', modality: 'CT Chest' },
-          { filename: 'report_2023_11_10.md', date: '2023-11-10', modality: 'CT Abdomen/Pelvis' }
+          { filename: 'report_2025_07_10.md' },
+          { filename: 'report_2025_01_15.md' },
+          { filename: 'report_2024_03_20.md' },
+          { filename: 'report_2023_08_05.md' },
+          { filename: 'report_2022_12_10.md' },
+          { filename: 'report_2020_05_01.md' }
         ];
 
         const loadedReports = await Promise.all(
@@ -38,14 +41,58 @@ export default function StyleSettingsTab({ onOpenModal }) {
             try {
               const response = await fetch(`/demo-data/prior_reports/${report.filename}`);
               const content = await response.text();
-              // Extract summary from first few lines
               const lines = content.split('\n').filter(l => l.trim());
-              const summary = lines.slice(3, 6).join(' ').substring(0, 100) + '...';
+              
+              // Extract modality from first line (remove # and trim)
+              const modality = lines[0]?.replace(/^#\s*/, '').trim() || 'Unknown';
+              
+              // Extract date from third line (format: **Date:** Month Day, Year)
+              let date = '';
+              const dateLine = lines.find(l => l.includes('**Date:**'));
+              if (dateLine) {
+                const dateMatch = dateLine.match(/\*\*Date:\*\*\s*(.+)/);
+                if (dateMatch) {
+                  const dateStr = dateMatch[1].trim();
+                  // Convert "Month Day, Year" to "YYYY-MM-DD"
+                  try {
+                    const parsedDate = new Date(dateStr);
+                    if (!isNaN(parsedDate.getTime())) {
+                      date = parsedDate.toISOString().split('T')[0];
+                    } else {
+                      // Fallback: extract from filename
+                      const filenameMatch = report.filename.match(/report_(\d{4})_(\d{2})_(\d{2})/);
+                      if (filenameMatch) {
+                        date = `${filenameMatch[1]}-${filenameMatch[2]}-${filenameMatch[3]}`;
+                      }
+                    }
+                  } catch (e) {
+                    // Fallback: extract from filename
+                    const filenameMatch = report.filename.match(/report_(\d{4})_(\d{2})_(\d{2})/);
+                    if (filenameMatch) {
+                      date = `${filenameMatch[1]}-${filenameMatch[2]}-${filenameMatch[3]}`;
+                    }
+                  }
+                }
+              } else {
+                // Fallback: extract from filename
+                const filenameMatch = report.filename.match(/report_(\d{4})_(\d{2})_(\d{2})/);
+                if (filenameMatch) {
+                  date = `${filenameMatch[1]}-${filenameMatch[2]}-${filenameMatch[3]}`;
+                }
+              }
+              
+              // Extract summary from findings section
+              const findingsIndex = lines.findIndex(l => l.includes('## Findings:') || l.includes('## FINDINGS:'));
+              const summaryLines = findingsIndex >= 0 
+                ? lines.slice(findingsIndex + 1, findingsIndex + 4)
+                : lines.slice(3, 6);
+              const summary = summaryLines.join(' ').replace(/\*\*/g, '').substring(0, 100) + '...';
+              
               return {
                 id: idx + 1,
                 filename: report.filename,
-                date: report.date,
-                modality: report.modality,
+                date: date,
+                modality: modality,
                 summary: summary,
                 content: content
               };
@@ -56,7 +103,12 @@ export default function StyleSettingsTab({ onOpenModal }) {
           })
         );
 
-        setPriorRadiologistReports(loadedReports.filter(r => r !== null));
+        // Sort by date descending (most recent first)
+        const sortedReports = loadedReports
+          .filter(r => r !== null)
+          .sort((a, b) => b.date.localeCompare(a.date));
+
+        setPriorRadiologistReports(sortedReports);
       } catch (error) {
         console.error('Failed to load prior radiologist reports:', error);
         setPriorRadiologistReports([]);
