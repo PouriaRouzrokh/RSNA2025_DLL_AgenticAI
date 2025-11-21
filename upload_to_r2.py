@@ -65,40 +65,9 @@ def upload_to_r2(file_path, bucket_name, object_key, account_id, access_key_id, 
         )
     )
     
-    # Test connection by checking if bucket exists (this will fail if credentials are wrong)
-    try:
-        print("\nValidating credentials...")
-        s3_client.head_bucket(Bucket=bucket_name)
-        print("✓ Credentials validated successfully")
-    except Exception as e:
-        error_msg = str(e)
-        print(f"✗ Credential validation failed: {error_msg}")
-        print("\nTroubleshooting steps:")
-        print("1. Get the S3 API endpoint from your bucket settings:")
-        print("   - Go to R2 > Your Bucket > Settings > General")
-        print("   - Find 'S3 API' section")
-        print("   - Copy the endpoint URL (e.g., https://xxxxx.r2.cloudflarestorage.com)")
-        print("   - Add to .env as: R2_ENDPOINT_URL=https://xxxxx.r2.cloudflarestorage.com")
-        print("   - This is often more reliable than using account ID")
-        print("\n2. Verify R2_ACCOUNT_ID:")
-        print("   - Found in Cloudflare dashboard (right sidebar on any page)")
-        print("   - Should be a long alphanumeric string")
-        print("   - No spaces or special characters")
-        print(f"   - Current value: {account_id[:20]}...")
-        print("\n3. Verify R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY:")
-        print("   - Go to R2 > Manage R2 API Tokens")
-        print("   - Ensure token has 'Object Read & Write' permissions")
-        print("   - Copy Access Key ID and Secret Access Key exactly")
-        print("   - No extra spaces or quotes in .env file")
-        print("\n4. Verify bucket name:")
-        print(f"   - Current: {bucket_name}")
-        print("   - Must match exactly (case-sensitive)")
-        print("\n5. Check .env file format:")
-        print("   - Each variable should be on its own line")
-        print("   - Format: VARIABLE_NAME=value")
-        print("   - No spaces around the = sign")
-        print("   - No quotes unless the value itself contains spaces")
-        raise
+    # Skip credential validation - just try uploading directly
+    # Validation might require different permissions than upload
+    print("\nProceeding with upload...")
     
     file_size = os.path.getsize(file_path)
     print(f"\nUploading {file_path} ({file_size / (1024*1024):.2f} MB) to {bucket_name}/{object_key}...")
@@ -193,6 +162,23 @@ if __name__ == "__main__":
     try:
         upload_to_r2(file_path, bucket_name, object_key, account_id, access_key_id, secret_access_key)
     except Exception as e:
-        print(f"Error uploading file: {e}")
+        error_msg = str(e)
+        print(f"\n✗ Error uploading file: {error_msg}")
+        
+        if "401" in error_msg or "Unauthorized" in error_msg:
+            print("\nThis indicates invalid credentials. Please:")
+            print("1. Go to R2 > Manage R2 API Tokens")
+            print("2. Create a NEW token with 'Object Read & Write' permissions")
+            print("3. Update your .env file with the new credentials")
+        elif "403" in error_msg or "Access Denied" in error_msg:
+            print("\nThis indicates insufficient permissions. Please:")
+            print("1. Go to R2 > Manage R2 API Tokens")
+            print("2. Ensure your token has 'Object Read & Write' permissions")
+            print("3. If token is bucket-scoped, ensure it's scoped to: rsna2025-medical-imaging")
+        elif "404" in error_msg or "Not Found" in error_msg:
+            print(f"\nBucket '{bucket_name}' not found. Please verify:")
+            print("1. Bucket name is correct (case-sensitive)")
+            print("2. Bucket exists in your R2 account")
+        
         sys.exit(1)
 
