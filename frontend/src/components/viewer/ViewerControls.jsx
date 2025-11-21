@@ -6,7 +6,8 @@ export default function ViewerControls({
   onSliceChange,
   windowLevel,
   onWindowLevelChange,
-  onMaximize 
+  onMaximize,
+  isMaximized = false
 }) {
   const windowLevelPresets = [
     { id: 'brain', label: 'Brain' },
@@ -168,7 +169,7 @@ export default function ViewerControls({
             e.target.style.backgroundColor = 'var(--accent-blue)';
           }}
         >
-          Maximize
+          {isMaximized ? 'Minimize' : 'Maximize'}
         </button>
       </div>
     </div>

@@ -182,10 +182,17 @@ export async function loadCachedNiftiData(url) {
             volume = new Int16Array(volumeArray);
         }
 
+        // Validate and sanitize dimensions from cache
+        let dims = cached.dimensions || {};
+        const x = Math.max(1, Math.floor(dims.x) || 1);
+        const y = Math.max(1, Math.floor(dims.y) || 1);
+        const z = Math.max(1, Math.floor(dims.z) || 1);
+        const t = Math.max(1, Math.floor(dims.t) || 1);
+
         const niftiData = {
           volume: volume,
-          dimensions: cached.dimensions,
-          pixelDimensions: cached.pixelDimensions,
+          dimensions: { x, y, z, t },
+          pixelDimensions: cached.pixelDimensions || { x: 1, y: 1, z: 1 },
           header: cached.header,
           datatypeCode: cached.datatypeCode,
           sclSlope: cached.sclSlope,

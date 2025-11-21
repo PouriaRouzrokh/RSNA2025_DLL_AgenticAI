@@ -128,6 +128,7 @@ export default function FullScreenViewer({
           windowLevel={windowLevel}
           onWindowLevelChange={onWindowLevelChange}
           onMaximize={onClose} // Close full screen
+          isMaximized={true}
         />
       </div>
     </div>

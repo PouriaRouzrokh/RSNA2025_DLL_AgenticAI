@@ -41,6 +41,15 @@ function ViewThumbnail({ view, isSelected, onClick, niftiData, windowLevel }) {
         const sliceInfo = extractSlice(niftiData, view, midSliceIndex);
         const { data, width: sliceWidth, height: sliceHeight } = sliceInfo;
 
+        // Validate slice dimensions
+        const validSliceWidth = Math.max(1, Math.floor(sliceWidth)) || 1;
+        const validSliceHeight = Math.max(1, Math.floor(sliceHeight)) || 1;
+        
+        if (!isFinite(validSliceWidth) || !isFinite(validSliceHeight) || validSliceWidth <= 0 || validSliceHeight <= 0) {
+          console.error(`Invalid slice dimensions in ViewSelector: ${sliceWidth}x${sliceHeight}`);
+          return;
+        }
+
         // Get window/level preset
         const preset = WINDOW_LEVEL_PRESETS[windowLevel] || WINDOW_LEVEL_PRESETS.soft_tissue;
         const sclSlope = niftiData.sclSlope;
@@ -50,29 +59,45 @@ function ViewThumbnail({ view, isSelected, onClick, niftiData, windowLevel }) {
         const normalizedSlice = normalizeSlice(data, sclSlope, sclInter, preset.window, preset.level);
 
         // Render thumbnail (scaled down)
-        const scale = Math.min(width / sliceWidth, height / sliceHeight);
-        const scaledWidth = sliceWidth * scale;
-        const scaledHeight = sliceHeight * scale;
+        const scale = Math.min(width / validSliceWidth, height / validSliceHeight);
+        const scaledWidth = validSliceWidth * scale;
+        const scaledHeight = validSliceHeight * scale;
         const offsetX = (width - scaledWidth) / 2;
         const offsetY = (height - scaledHeight) / 2;
 
-        const imageData = ctx.createImageData(width, height);
+        // Validate canvas dimensions before creating image data
+        const validWidth = Math.max(1, Math.floor(width)) || 1;
+        const validHeight = Math.max(1, Math.floor(height)) || 1;
+        
+        if (!isFinite(validWidth) || !isFinite(validHeight) || validWidth <= 0 || validHeight <= 0) {
+          console.error(`Invalid canvas dimensions in ViewSelector: ${width}x${height}`);
+          return;
+        }
 
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            const index = (y * width + x) * 4;
+        const imageData = ctx.createImageData(validWidth, validHeight);
+
+        for (let y = 0; y < validHeight; y++) {
+          for (let x = 0; x < validWidth; x++) {
+            const index = (y * validWidth + x) * 4;
             
             const sliceX = Math.floor((x - offsetX) / scale);
             const sliceY = Math.floor((y - offsetY) / scale);
             
-            if (sliceX >= 0 && sliceX < sliceWidth && sliceY >= 0 && sliceY < sliceHeight) {
-              const sliceIdx = sliceY * sliceWidth + sliceX;
-              const normalized = normalizedSlice[sliceIdx];
-              
-              imageData.data[index] = normalized;
-              imageData.data[index + 1] = normalized;
-              imageData.data[index + 2] = normalized;
-              imageData.data[index + 3] = 255;
+            if (sliceX >= 0 && sliceX < validSliceWidth && sliceY >= 0 && sliceY < validSliceHeight) {
+              const sliceIdx = sliceY * validSliceWidth + sliceX;
+              if (sliceIdx >= 0 && sliceIdx < normalizedSlice.length) {
+                const normalized = normalizedSlice[sliceIdx];
+                
+                imageData.data[index] = normalized;
+                imageData.data[index + 1] = normalized;
+                imageData.data[index + 2] = normalized;
+                imageData.data[index + 3] = 255;
+              } else {
+                imageData.data[index] = 0;
+                imageData.data[index + 1] = 0;
+                imageData.data[index + 2] = 0;
+                imageData.data[index + 3] = 255;
+              }
             } else {
               imageData.data[index] = 0;
               imageData.data[index + 1] = 0;

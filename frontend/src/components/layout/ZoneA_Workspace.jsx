@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import CTViewer from '@/components/viewer/CTViewer';
 import ViewerControls from '@/components/viewer/ViewerControls';
 import ReportEditor from '@/components/report/ReportEditor';
 import FullScreenViewer from '@/components/modals/FullScreenViewer';
-import { loadNiftiFile } from '@/utils/niftiLoader';
+import { loadNiftiFile, calculateTargetSliceCount } from '@/utils/niftiLoader';
 
 export default function ZoneA_Workspace() {
   const [currentSlice, setCurrentSlice] = useState(1);
@@ -13,8 +13,11 @@ export default function ZoneA_Workspace() {
   const [currentView, setCurrentView] = useState('axial'); // 'axial', 'sagittal', 'coronal'
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [totalSlices, setTotalSlices] = useState(20); // Will be updated when NIfTI loads
-  const [niftiData, setNiftiData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [niftiDataVersion, setNiftiDataVersion] = useState(0); // Version counter to trigger re-renders
+  
+  // Store the actual volume data in a ref to avoid React DevTools serialization issues
+  const niftiDataRef = useRef(null);
   
   // Track last slice for each view
   const [viewSlices, setViewSlices] = useState({
@@ -22,6 +25,30 @@ export default function ZoneA_Workspace() {
     sagittal: null,
     coronal: null
   });
+  
+  // Memoized wrapper for niftiData to prevent unnecessary re-renders
+  // Creates a wrapper with non-enumerable volume to prevent React DevTools serialization
+  const niftiDataWrapper = useMemo(() => {
+    const data = niftiDataRef.current;
+    if (!data) return null;
+    
+    // Create a new object with all properties except volume
+    const { volume, ...rest } = data;
+    const wrapper = { ...rest };
+    
+    // Add volume as a non-enumerable property to prevent React DevTools serialization
+    Object.defineProperty(wrapper, 'volume', {
+      value: volume,
+      enumerable: false,
+      writable: false,
+      configurable: false
+    });
+    
+    return wrapper;
+  }, [niftiDataVersion]); // Only recreate when data version changes
+  
+  // Getter function for use in effects
+  const getNiftiData = useCallback(() => niftiDataRef.current, []);
 
   // Load NIfTI file once and share between regular and fullscreen views
   useEffect(() => {
@@ -34,8 +61,10 @@ export default function ZoneA_Workspace() {
         
         if (cancelled) return;
         
-        setNiftiData(data);
+        // Store in ref instead of state to avoid React DevTools serialization
+        niftiDataRef.current = data;
         setLoading(false);
+        setNiftiDataVersion(prev => prev + 1); // Trigger re-render
         
         const { dimensions } = data;
         let maxSlices = 20;
@@ -43,18 +72,22 @@ export default function ZoneA_Workspace() {
         if (currentView === 'axial') {
           maxSlices = dimensions.z;
         } else if (currentView === 'sagittal') {
-          maxSlices = dimensions.x;
+          maxSlices = calculateTargetSliceCount(data, 'sagittal');
         } else if (currentView === 'coronal') {
-          maxSlices = dimensions.y;
+          maxSlices = calculateTargetSliceCount(data, 'coronal');
         }
 
         setTotalSlices(maxSlices);
         
         // Initialize slices for all views to mid-slice on first load
+        const axialSlices = dimensions.z;
+        const sagittalSlices = calculateTargetSliceCount(data, 'sagittal');
+        const coronalSlices = calculateTargetSliceCount(data, 'coronal');
+        
         const initialSlices = {
-          axial: Math.ceil(dimensions.z / 2),
-          sagittal: Math.ceil(dimensions.x / 2),
-          coronal: Math.ceil(dimensions.y / 2)
+          axial: Math.ceil(axialSlices / 2),
+          sagittal: Math.ceil(sagittalSlices / 2),
+          coronal: Math.ceil(coronalSlices / 2)
         };
         setViewSlices(initialSlices);
         
@@ -77,6 +110,7 @@ export default function ZoneA_Workspace() {
   // Track current slice per view when it changes (but not when view changes)
   const prevViewRef = useRef(currentView);
   useEffect(() => {
+    const niftiData = getNiftiData();
     if (niftiData && currentSlice && prevViewRef.current === currentView) {
       setViewSlices(prev => ({
         ...prev,
@@ -84,11 +118,19 @@ export default function ZoneA_Workspace() {
       }));
     }
     prevViewRef.current = currentView;
-  }, [currentSlice, currentView, niftiData]);
+  }, [currentSlice, currentView, niftiDataVersion]);
 
   // Update total slices and restore last slice when view changes
   const prevViewForSliceRestore = useRef(currentView);
+  const viewSlicesRef = useRef(viewSlices);
+  
+  // Keep ref in sync with state
   useEffect(() => {
+    viewSlicesRef.current = viewSlices;
+  }, [viewSlices]);
+  
+  useEffect(() => {
+    const niftiData = getNiftiData();
     if (niftiData) {
       const { dimensions } = niftiData;
       let maxSlices = 20;
@@ -105,7 +147,7 @@ export default function ZoneA_Workspace() {
       
       // Only restore slice if view actually changed (not on initial load)
       if (prevViewForSliceRestore.current !== currentView) {
-        const lastSlice = viewSlices[currentView];
+        const lastSlice = viewSlicesRef.current[currentView];
         if (lastSlice) {
           // Clamp to valid range
           const clampedSlice = Math.max(1, Math.min(maxSlices, lastSlice));
@@ -122,7 +164,7 @@ export default function ZoneA_Workspace() {
         prevViewForSliceRestore.current = currentView;
       }
     }
-  }, [currentView, niftiData, viewSlices]);
+  }, [currentView, niftiDataVersion]); // Removed viewSlices from dependencies
 
   const handleMaximize = () => {
     setIsFullScreen(true);
@@ -165,7 +207,7 @@ export default function ZoneA_Workspace() {
               onViewChange={setCurrentView}
               windowLevel={windowLevel}
               onMaximize={handleMaximize}
-              niftiData={niftiData}
+              niftiData={niftiDataWrapper}
               loading={loading}
             />
           </div>
@@ -176,6 +218,7 @@ export default function ZoneA_Workspace() {
             windowLevel={windowLevel}
             onWindowLevelChange={setWindowLevel}
             onMaximize={handleMaximize}
+            isMaximized={isFullScreen}
           />
         </div>
 
@@ -207,7 +250,7 @@ export default function ZoneA_Workspace() {
           currentView={currentView}
           onViewChange={setCurrentView}
           totalSlices={totalSlices}
-          niftiData={niftiData}
+          niftiData={niftiDataWrapper}
           loading={loading}
         />
       )}

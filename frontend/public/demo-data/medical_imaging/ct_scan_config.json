@@ -1,7 +1,7 @@
 [
   {
     "file_path": "/demo-data/medical_imaging/ct_scan.nii.gz",
-    "rescale_intercept": -8192,
+    "rescale_intercept": -1024,
     "rescale_slope": 1
   }
 ]
