@@ -29,8 +29,18 @@ def upload_to_r2(file_path, bucket_name, object_key, account_id, access_key_id, 
         secret_access_key: R2 Secret Access Key
     """
     
-    # R2 endpoint URL
+    # R2 endpoint URL - format: https://<account-id>.r2.cloudflarestorage.com
+    # Remove any whitespace from credentials
+    account_id = account_id.strip()
+    access_key_id = access_key_id.strip()
+    secret_access_key = secret_access_key.strip()
+    
     endpoint_url = f"https://{account_id}.r2.cloudflarestorage.com"
+    
+    print(f"Configuration:")
+    print(f"  Endpoint: {endpoint_url}")
+    print(f"  Bucket: {bucket_name}")
+    print(f"  Access Key ID: {access_key_id[:10]}...{access_key_id[-4:] if len(access_key_id) > 14 else ''}")
     
     # Create S3 client configured for R2
     s3_client = boto3.client(
@@ -46,8 +56,37 @@ def upload_to_r2(file_path, bucket_name, object_key, account_id, access_key_id, 
         )
     )
     
+    # Test connection by checking if bucket exists (this will fail if credentials are wrong)
+    try:
+        print("\nValidating credentials...")
+        s3_client.head_bucket(Bucket=bucket_name)
+        print("✓ Credentials validated successfully")
+    except Exception as e:
+        error_msg = str(e)
+        print(f"✗ Credential validation failed: {error_msg}")
+        print("\nTroubleshooting steps:")
+        print("1. Verify R2_ACCOUNT_ID:")
+        print("   - Found in Cloudflare dashboard (right sidebar on any page)")
+        print("   - Should be a long alphanumeric string")
+        print("   - No spaces or special characters")
+        print(f"   - Current value: {account_id[:20]}...")
+        print("\n2. Verify R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY:")
+        print("   - Go to R2 > Manage R2 API Tokens")
+        print("   - Ensure token has 'Object Read & Write' permissions")
+        print("   - Copy Access Key ID and Secret Access Key exactly")
+        print("   - No extra spaces or quotes in .env file")
+        print("\n3. Verify bucket name:")
+        print(f"   - Current: {bucket_name}")
+        print("   - Must match exactly (case-sensitive)")
+        print("\n4. Check .env file format:")
+        print("   - Each variable should be on its own line")
+        print("   - Format: VARIABLE_NAME=value")
+        print("   - No spaces around the = sign")
+        print("   - No quotes unless the value itself contains spaces")
+        raise
+    
     file_size = os.path.getsize(file_path)
-    print(f"Uploading {file_path} ({file_size / (1024*1024):.2f} MB) to {bucket_name}/{object_key}...")
+    print(f"\nUploading {file_path} ({file_size / (1024*1024):.2f} MB) to {bucket_name}/{object_key}...")
     
     # Use multipart upload for large files
     if file_size > 100 * 1024 * 1024:  # 100 MB threshold
