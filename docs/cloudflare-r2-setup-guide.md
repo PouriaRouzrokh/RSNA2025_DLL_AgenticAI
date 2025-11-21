@@ -14,20 +14,24 @@ This guide will walk you through setting up Cloudflare R2 object storage and con
 
 ## Step 2: Configure Bucket Settings
 
-### Enable Public Access (for public files)
+### Enable Public Development URL (Required for public file access)
 
-1. Go to your bucket → **Settings** tab
-2. Under **"Public Access"**, you have two options:
+1. Go to your bucket → **Settings** tab → **General** section
+2. Scroll down to **"Public Development URL"** section
+3. Click **"Enable"** button
+4. This will generate a public URL that allows browser access to your files
+5. ⚠️ **Note**: This is for development/testing. For production, consider using a Custom Domain (see Step 3)
 
-   **Option A: Public Bucket (Simpler)**
-   - Enable **"Allow Access"** 
-   - This makes all files in the bucket publicly accessible
-   - ⚠️ Only use this if you don't have sensitive data
+> **Important**: After enabling, you'll get a public URL like `https://pub-xxxxx.r2.dev`. You'll use this URL in Step 5.
 
-   **Option B: Custom Domain (Recommended)**
-   - Set up a custom domain for your R2 bucket
-   - This gives you better control and branding
-   - See Step 3 below
+### Alternative: Set Up Custom Domain (Recommended for Production)
+
+If you prefer a custom domain instead:
+1. Go to **Settings** → **Custom Domains** section
+2. Click **"+ Add"** button
+3. Enter a subdomain (e.g., `cdn.rsna2025-agenticai.com`)
+4. Follow Cloudflare's instructions to add DNS records
+5. See Step 3 below for more details
 
 ### Configure CORS (Required for browser access)
 
@@ -96,16 +100,23 @@ wrangler r2 object put rsna2025-medical-imaging/ct_scan.nii.gz --file=frontend/p
 
 ## Step 5: Get the Public URL
 
-### If Using Public Bucket Access:
+### If Using Public Development URL:
 
-The URL format will be:
+After enabling Public Development URL in Step 2, you'll get a URL like:
 ```
-https://<account-id>.r2.cloudflarestorage.com/<bucket-name>/ct_scan.nii.gz
+https://pub-xxxxx.r2.dev
 ```
 
-You can find this by:
-1. Clicking on the file in your bucket
-2. Copying the **"Public URL"** or **"R2.dev subdomain"** URL
+To get the full file URL:
+1. Go to your bucket → **Objects** tab
+2. Click on the file `ct_scan.nii.gz`
+3. In the file details, you'll see the **"Public Development URL"** 
+4. Copy the full URL (e.g., `https://pub-xxxxx.r2.dev/rsna2025-medical-imaging/ct_scan.nii.gz`)
+
+Or construct it manually:
+```
+https://pub-xxxxx.r2.dev/<bucket-name>/ct_scan.nii.gz
+```
 
 ### If Using Custom Domain:
 
@@ -126,7 +137,9 @@ https://cdn.rsna2025-agenticai.com/ct_scan.nii.gz
 
 ### Example Values:
 
-- **Public R2 URL**: `https://pub-xxxxx.r2.dev/rsna2025-medical-imaging/ct_scan.nii.gz`
+- **Public Development URL**: `https://pub-xxxxx.r2.dev/rsna2025-medical-imaging/ct_scan.nii.gz`
+  - Replace `xxxxx` with your actual public development URL ID
+  - Replace `rsna2025-medical-imaging` with your bucket name
 - **Custom Domain**: `https://cdn.rsna2025-agenticai.com/ct_scan.nii.gz`
 
 ## Step 7: Update Your Code
@@ -162,9 +175,10 @@ If you see CORS errors in the browser console:
 
 ### 403 Forbidden Errors
 
-- Check that public access is enabled (if using public bucket)
-- Verify the file path/name matches exactly
-- Check bucket permissions
+- Check that **Public Development URL** is enabled in bucket settings
+- Verify the file path/name matches exactly in the URL
+- Ensure you're using the correct public development URL format
+- If using custom domain, verify DNS records are configured correctly
 
 ### File Not Found (404)
 
