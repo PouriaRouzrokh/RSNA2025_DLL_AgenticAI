@@ -1,3 +1,5 @@
+import { getCtScanConfigUrl } from './niftiFileUrl';
+
 let configCache = null;
 
 export async function loadCTScanConfig() {
@@ -6,7 +8,7 @@ export async function loadCTScanConfig() {
   }
 
   try {
-    const response = await fetch('/demo-data/medical_imaging/ct_scan_config.json');
+    const response = await fetch(getCtScanConfigUrl());
     if (!response.ok) {
       configCache = [];
       return configCache;

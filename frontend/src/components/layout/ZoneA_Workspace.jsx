@@ -6,6 +6,7 @@ import ViewerControls from '@/components/viewer/ViewerControls';
 import ReportEditor from '@/components/report/ReportEditor';
 import FullScreenViewer from '@/components/modals/FullScreenViewer';
 import { loadNiftiFile, calculateTargetSliceCount } from '@/utils/niftiLoader';
+import { getNiftiFileUrl } from '@/utils/niftiFileUrl';
 
 export default function ZoneA_Workspace() {
   const [currentSlice, setCurrentSlice] = useState(1);
@@ -57,7 +58,7 @@ export default function ZoneA_Workspace() {
     const loadFile = async () => {
       try {
         setLoading(true);
-        const data = await loadNiftiFile('/demo-data/medical_imaging/ct_scan.nii.gz');
+        const data = await loadNiftiFile(getNiftiFileUrl());
         
         if (cancelled) return;
         

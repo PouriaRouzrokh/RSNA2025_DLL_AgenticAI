@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useReportStore } from '@/hooks/useReportState';
 import { getReportTexts } from '@/utils/ctScanConfig';
+import { getNiftiFileUrl } from '@/utils/niftiFileUrl';
 
 export default function ReportEditor() {
   const {
@@ -24,7 +25,7 @@ export default function ReportEditor() {
   useEffect(() => {
     const loadReportTexts = async () => {
       try {
-        const texts = await getReportTexts('/demo-data/medical_imaging/ct_scan.nii.gz');
+        const texts = await getReportTexts(getNiftiFileUrl());
         if (texts.technique) {
           setTechniqueText(texts.technique);
         }
