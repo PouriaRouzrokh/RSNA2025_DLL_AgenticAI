@@ -161,10 +161,10 @@ pip3 install boto3 python-dotenv
 
 #### Step 5: Upload Using the Python Script
 
-A helper script `upload_to_r2.py` is included in the repository:
+A helper script `utils/upload_to_r2.py` is included in the repository:
 
 ```bash
-python3 upload_to_r2.py \
+python3 utils/upload_to_r2.py \
   frontend/public/demo-data/medical_imaging/ct_scan.nii.gz \
   rsna2025-medical-imaging \
   ct_scan.nii.gz
