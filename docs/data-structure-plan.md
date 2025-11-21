@@ -223,9 +223,35 @@ Characterization of incidental liver lesions found on imaging.
 - Can be downloaded from: https://www.slicer.org/wiki/SampleData (or similar)
 - File size should be <10MB for fast loading during development
 
+**Preprocessed Files (Optional):**
+- For faster loading, you can create `ct_scan_preprocessed.json` files
+- Contains pre-parsed volume data as Float32Array
+- Automatically detected and loaded if present (much faster than NIfTI)
+
+## 6. CT Scan Configuration
+
+**Location:** `/frontend/public/demo-data/medical_imaging/ct_scan_config.json`
+
+**Format:**
+```json
+[
+  {
+    "file_path": "/demo-data/medical_imaging/ct_scan.nii.gz",
+    "rescale_intercept": -8192,
+    "rescale_slope": 1
+  }
+]
+```
+
+**Purpose:**
+- Allows manual configuration of rescale intercept and slope values
+- Overrides values from NIfTI file header
+- Supports multiple CT scans with different rescale values
+- Essential for correct CT windowing display
+
 ---
 
-## 6. Style Guide (User Uploaded Examples)
+## 7. Style Guide (User Uploaded Examples)
 
 **Location (Final):** User uploads these
 **Location (Demo):** `/frontend/public/demo-data/style_guide/`
@@ -254,21 +280,25 @@ The pancreas, spleen, and adrenal glands are unremarkable.
 ## Directory Structure for Data
 
 ### Dummy Data (Created During Implementation Phase)
-**Location:** `/data/` (root directory)
+**Location:** `/frontend/public/demo-data/` (for frontend access)
 
 ```
-data/
-├── patient_context.json
+frontend/public/demo-data/
+├── ehr_data/
+│   └── patient_context.json
 ├── prior_reports/
+│   ├── report_2023_11_10.md
 │   ├── report_2024_01_15.md
 │   └── report_2024_06_20.md
 ├── guidelines/
 │   ├── acr_guidelines.md
 │   └── institutional_protocols.md
 ├── style_guide/
-│   └── example_report_style.md
+│   └── (user uploaded examples)
 └── medical_imaging/
-    └── ct_scan.nii.gz  (You will provide or we use sample)
+    ├── ct_scan.nii.gz
+    ├── ct_scan_config.json
+    └── ct_scan_preprocessed.json (optional)
 ```
 
 **Note:** All dummy data will be created in `/data/` during implementation. This same directory will later contain your final real data files (you'll just replace the dummy files).

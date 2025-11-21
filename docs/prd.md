@@ -111,16 +111,26 @@ The backend exposes endpoints that trigger the pipeline.
 5.1 POST /agent/process
 Trigger: Clicking "Execute" or any Macro button in Zone B.
 Request Body:
-code
-JSON
+```json
 {
   "current_report": {
     "indication": "...",
-    "findings": "..."
+    "technique": "...",
+    "findings": "...",
+    "impression": "..."
   },
   "instruction": "Summarize priors",
-  "mode_button": "add_history" // or "custom", "proofread"
+  "mode_button": "summarize_priors" // or "add_history", "proofread", "check_completeness", "check_references", "custom"
 }
+```
+
+**Note:** The frontend sends `mode_button` mapped from macro checkbox selections:
+- `add_background` → `add_history`
+- `proofread` → `proofread`
+- `make_impressions` → `check_completeness`
+- `compare_priors` → `summarize_priors`
+- `check_references` → `check_references`
+- Custom instruction → `custom`
 Process:
 FastAPI initializes JobState.
 Passes State to Agent 1.

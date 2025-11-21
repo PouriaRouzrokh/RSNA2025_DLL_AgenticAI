@@ -21,14 +21,12 @@ RSNA2025_DLL_AgenticAI/
 │   │   │   │   └── ZoneC_ReferenceTray.jsx
 │   │   │   ├── viewer/
 │   │   │   │   ├── CTViewer.jsx
-│   │   │   │   └── ViewerControls.jsx
+│   │   │   │   ├── ViewerControls.jsx
+│   │   │   │   └── ViewSelector.jsx
 │   │   │   ├── report/
-│   │   │   │   ├── ReportEditor.jsx
-│   │   │   │   └── ReportFields.jsx
+│   │   │   │   └── ReportEditor.jsx
 │   │   │   ├── command/
-│   │   │   │   ├── InstructionInput.jsx
-│   │   │   │   ├── MacroButtons.jsx
-│   │   │   │   └── ProcessingIndicator.jsx
+│   │   │   │   └── (Macro functionality integrated into ZoneB_CommandBar.jsx)
 │   │   │   ├── tray/
 │   │   │   │   ├── PriorImagingTab.jsx
 │   │   │   │   ├── EHRTab.jsx
@@ -37,20 +35,20 @@ RSNA2025_DLL_AgenticAI/
 │   │   │   └── modals/
 │   │   │       ├── FocusModal.jsx
 │   │   │       └── FullScreenViewer.jsx
-│   │   ├── pages/
-│   │   │   ├── _app.js
-│   │   │   └── index.js             # Main SPA
+│   │   ├── app/
+│   │   │   ├── layout.js           # Root layout
+│   │   │   ├── page.js             # Main page (App Router)
+│   │   │   └── globals.css         # Global styles
 │   │   ├── styles/
-│   │   │   ├── globals.css
 │   │   │   ├── zones.css
 │   │   │   └── dark-theme.css
 │   │   ├── hooks/
 │   │   │   ├── useReportState.js
-│   │   │   ├── useCursorPosition.js
 │   │   │   └── useAgentAPI.js
 │   │   └── utils/
 │   │       ├── api.js               # Backend API calls
-│   │       └── formatters.js
+│   │       ├── niftiLoader.js      # NIfTI file loading and processing
+│   │       └── ctScanConfig.js     # CT scan rescale configuration loader
 │   ├── package.json
 │   └── next.config.js
 │
@@ -84,23 +82,23 @@ RSNA2025_DLL_AgenticAI/
 │   ├── requirements.txt
 │   └── .env.example
 │
-├── data/                             # **DATA DIRECTORY (Dummy + Final)**
-│   ├── patient_context.json          # EHR data (dummy initially, real later)
-│   ├── medical_imaging/
-│   │   └── ct_scan.nii.gz           # CT scan (dummy initially, real later)
-│   ├── prior_reports/                # Prior imaging reports
-│   │   ├── report_2024_01_15.md
-│   │   └── report_2024_06_20.md
-│   ├── guidelines/                   # Medical guidelines
-│   │   ├── acr_guidelines.md
-│   │   └── institutional_protocols.md
-│   ├── clinical_data/                # Clinical data (for final phase)
-│   │   ├── patient_history.md
-│   │   ├── lab_results.md
-│   │   ├── medications.md
-│   │   └── clinical_notes.md
-│   └── style_guide/                  # User uploaded examples
-│       └── example_report_style.md
+├── frontend/
+│   ├── public/
+│   │   └── demo-data/                # **DEMO DATA (Frontend Accessible)**
+│   │       ├── ehr_data/
+│   │       │   └── patient_context.json
+│   │       ├── medical_imaging/
+│   │       │   ├── ct_scan.nii.gz
+│   │       │   ├── ct_scan_config.json
+│   │       │   └── ct_scan_preprocessed.json (optional)
+│   │       ├── prior_reports/        # Prior imaging reports
+│   │       │   ├── report_2023_11_10.md
+│   │       │   ├── report_2024_01_15.md
+│   │       │   └── report_2024_06_20.md
+│   │       ├── guidelines/           # Medical guidelines
+│   │       │   ├── acr_guidelines.md
+│   │       │   └── institutional_protocols.md
+│   │       └── style_guide/          # User uploaded examples
 │
 ├── docs/                             # Documentation
 │   ├── prd.md

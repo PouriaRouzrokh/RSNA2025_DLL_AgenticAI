@@ -1,0 +1,90 @@
+{
+  "demographics": {
+    "age": 65,
+    "sex": "Male",
+    "mrn": "MRN-12345",
+    "dob": "1959-03-15"
+  },
+  "labResults": [
+    {
+      "test": "WBC",
+      "value": "7.2",
+      "unit": "K/μL",
+      "date": "2024-01-10",
+      "normalRange": "4.0-11.0"
+    },
+    {
+      "test": "Hemoglobin",
+      "value": "14.5",
+      "unit": "g/dL",
+      "date": "2024-01-10",
+      "normalRange": "13.5-17.5"
+    },
+    {
+      "test": "Creatinine",
+      "value": "1.1",
+      "unit": "mg/dL",
+      "date": "2024-01-10",
+      "normalRange": "0.7-1.3"
+    },
+    {
+      "test": "Glucose",
+      "value": "98",
+      "unit": "mg/dL",
+      "date": "2024-01-10",
+      "normalRange": "70-100"
+    }
+  ],
+  "medications": [
+    {
+      "name": "Aspirin",
+      "dose": "81mg",
+      "frequency": "daily",
+      "indication": "Cardiovascular protection"
+    },
+    {
+      "name": "Metformin",
+      "dose": "500mg",
+      "frequency": "twice daily",
+      "indication": "Type 2 Diabetes"
+    },
+    {
+      "name": "Lisinopril",
+      "dose": "10mg",
+      "frequency": "daily",
+      "indication": "Hypertension"
+    },
+    {
+      "name": "Atorvastatin",
+      "dose": "20mg",
+      "frequency": "daily",
+      "indication": "Hyperlipidemia"
+    }
+  ],
+  "clinicalNotes": [
+    {
+      "date": "2024-01-08",
+      "provider": "Dr. Smith",
+      "specialty": "Primary Care",
+      "note": "Patient reports stable condition. Blood pressure well controlled. Continue current medications. Follow-up in 3 months."
+    },
+    {
+      "date": "2023-12-15",
+      "provider": "Dr. Johnson",
+      "specialty": "Endocrinology",
+      "note": "Diabetes well controlled with Metformin. HbA1c 6.8%. Continue current regimen."
+    }
+  ],
+  "allergies": [
+    {
+      "allergen": "Penicillin",
+      "reaction": "Rash"
+    }
+  ],
+  "pastMedicalHistory": [
+    "Type 2 Diabetes",
+    "Hypertension",
+    "Hyperlipidemia",
+    "History of colon cancer (2018, status post resection)"
+  ]
+}

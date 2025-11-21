@@ -1,0 +1,68 @@
+/* Modern Dark Theme - Professional & Elegant */
+
+:root {
+  /* Background Colors - Softer, more elegant */
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #252525;
+  --bg-elevated: #2a2a2a;
+  
+  /* Text Colors - Better contrast */
+  --text-primary: #f5f5f5;
+  --text-secondary: #c0c0c0;
+  --text-tertiary: #888888;
+  
+  /* Accent Colors - More vibrant and modern */
+  --accent-blue: #60a5fa;
+  --accent-blue-hover: #3b82f6;
+  --accent-green: #34d399;
+  --accent-red: #f87171;
+  --accent-yellow: #fbbf24;
+  --accent-purple: #a78bfa;
+  
+  /* Border Colors - Subtle and refined */
+  --border-subtle: #2a2a2a;
+  --border-medium: #3a3a3a;
+  --border-strong: #4a4a4a;
+  
+  /* Interactive States */
+  --hover-bg: #2a2a2a;
+  --active-bg: #333333;
+  --focus-outline: #60a5fa;
+  --selected-bg: rgba(96, 165, 250, 0.15);
+  --selected-border: #60a5fa;
+  
+  /* Status Colors */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --info: #60a5fa;
+  
+  /* Shadows - More refined */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.5);
+  
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* Apply dark theme globally */
+* {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+

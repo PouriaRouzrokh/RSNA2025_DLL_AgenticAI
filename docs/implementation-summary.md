@@ -47,15 +47,20 @@ This document provides a high-level overview of the implementation plan for the 
 - Create three-zone layout
 - Make Zone C collapsible
 
-#### Week 2: Core Components
-- Implement CT Viewer (Cornerstone.js)
-- Build Report Editor with 4 fields
-- Add state management (Zustand)
+#### Week 2: Core Components ✅ COMPLETED
+- ✅ Implemented CT Viewer (nifti-reader-js)
+- ✅ Built Report Editor with 4 fields
+- ✅ Added state management (Zustand)
+- ✅ Created ViewSelector component with thumbnails
+- ✅ Implemented FullScreenViewer modal
+- ✅ Added JSON configuration for CT scan rescale values
 
-#### Week 3: Interactive Features
-- Build Command Bar with macro buttons
-- Implement Reference Tray tabs
-- Create Focus Modal for documents
+#### Week 3: Interactive Features ✅ COMPLETED
+- ✅ Built Command Bar with macro checkboxes (5 macros)
+- ✅ Implemented Reference Tray tabs (4 tabs)
+- ✅ Created Focus Modal for documents
+- ✅ Added resizable Zone C with drag handle
+- ✅ Implemented collapse/expand functionality
 
 #### Week 4: Integration & Polish
 - Connect to backend API (mock at first)
@@ -189,10 +194,10 @@ mkdir -p data/{clinical_data,prior_imaging,guidelines,medical_imaging}
 ## Technology Stack
 
 ### Frontend
-- **Framework**: Next.js 14 (JavaScript)
+- **Framework**: Next.js 16 (JavaScript, App Router)
 - **Styling**: CSS with dark theme
 - **State Management**: Zustand
-- **CT Viewer**: Cornerstone.js / VTK.js
+- **CT Viewer**: nifti-reader-js (NIfTI file loading)
 - **Markdown**: react-markdown
 - **PDF**: react-pdf
 - **HTTP**: Axios
@@ -214,12 +219,18 @@ mkdir -p data/{clinical_data,prior_imaging,guidelines,medical_imaging}
 
 ## Critical Success Factors
 
-### Frontend
+### Frontend ✅ COMPLETED
 1. ✅ Dark theme throughout
-2. ✅ Smooth CT viewer (60fps scrolling)
-3. ✅ Responsive three-zone layout
-4. ✅ All macro buttons functional
+2. ✅ Smooth CT viewer with nifti-reader-js
+3. ✅ Responsive three-zone layout with resizable Zone C
+4. ✅ Macro checkboxes (5 options) with multiple selection
 5. ✅ Clear loading/error states
+6. ✅ ViewSelector with thumbnail previews
+7. ✅ FullScreenViewer modal with proper sizing
+8. ✅ Slice preservation per view
+9. ✅ JSON configuration for CT scan rescale values
+10. ✅ Preprocessed file support for faster loading
+11. ✅ Updated titles: "RSNA 2025 DLL • An Introduction to Agentic AI in Radiology" and "Sample Chest CT scan Report"
 
 ### Backend
 1. ✅ <5 second response time

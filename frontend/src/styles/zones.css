@@ -1,0 +1,91 @@
+/* Zone Layout Styles */
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+}
+
+/* Zone A: Workspace (flexible height, resizable) */
+.zone-a {
+  flex: 1;
+  min-height: 300px;
+  display: flex;
+  flex-direction: row;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+/* Zone B: Command Bar (fixed height) */
+.zone-b {
+  height: 64px;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-secondary);
+}
+
+/* Zone C: Reference Tray (resizable height) */
+.zone-c {
+  height: 30vh;
+  min-height: 200px;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-secondary);
+  transition: height var(--transition-normal);
+  overflow: hidden;
+  position: relative;
+}
+
+.zone-c.collapsed {
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  border-top: none;
+}
+
+/* Resizer handle */
+.zone-resizer {
+  height: 4px;
+  background-color: var(--border-subtle);
+  cursor: ns-resize;
+  position: relative;
+  transition: background-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.zone-resizer:hover {
+  background-color: var(--accent-blue);
+}
+
+.zone-resizer::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 2px;
+  background-color: var(--border-medium);
+  border-radius: 2px;
+}
+
+/* Responsive adjustments */
+@media (min-width: 1920px) {
+  .main-container {
+    max-width: 100vw;
+  }
+}
+
+@media (min-width: 2560px) {
+  .main-container {
+    max-width: 100vw;
+  }
+}
+
