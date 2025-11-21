@@ -71,32 +71,53 @@ If you prefer a custom domain instead:
 
 ## Step 4: Upload Files to R2
 
-### Upload the NIfTI File:
+### ⚠️ Important: File Size Limit
 
-1. Go to your bucket
+**Files larger than 300 MB cannot be uploaded via the web UI** and must use Wrangler CLI or S3 API.
+
+Since your NIfTI file (`ct_scan.nii.gz`) is 443 MB, you **must** use Wrangler CLI (see below).
+
+### Upload Using Wrangler CLI (Required for files > 300 MB):
+
+1. **Install Wrangler CLI** (if not already installed):
+   ```bash
+   npm install -g wrangler
+   ```
+
+2. **Login to Cloudflare**:
+   ```bash
+   wrangler login
+   ```
+   This will open your browser to authenticate with Cloudflare.
+
+3. **Upload the NIfTI file**:
+   ```bash
+   cd /Users/pouria/Documents/Coding/RSNA2025_DLL_AgenticAI
+   wrangler r2 object put rsna2025-medical-imaging/ct_scan.nii.gz \
+     --file=frontend/public/demo-data/medical_imaging/ct_scan.nii.gz
+   ```
+   Replace `rsna2025-medical-imaging` with your actual bucket name.
+
+4. **Upload the Config File** (small file, can use web UI or CLI):
+   ```bash
+   wrangler r2 object put rsna2025-medical-imaging/ct_scan_config.json \
+     --file=frontend/public/demo-data/medical_imaging/ct_scan_config.json
+   ```
+
+### Alternative: Upload Config File via Web UI
+
+If the config file is small (< 300 MB), you can upload it via the web UI:
+1. Go to your bucket → **Objects** tab
 2. Click **"Upload"**
-3. Navigate to: `frontend/public/demo-data/medical_imaging/ct_scan.nii.gz`
+3. Select `frontend/public/demo-data/medical_imaging/ct_scan_config.json`
 4. Upload the file
-5. **Important**: Note the file path/name in R2 (it should be `ct_scan.nii.gz`)
 
-### Upload the Config File:
+### Verify Upload
 
-1. In the same bucket, upload: `frontend/public/demo-data/medical_imaging/ct_scan_config.json`
-2. **Important**: Upload it to the same directory/path structure as the NIfTI file
-3. This ensures the config file URL can be derived from the NIfTI file URL
-
-### Using Wrangler CLI (Alternative):
-
-```bash
-# Install Wrangler CLI
-npm install -g wrangler
-
-# Login to Cloudflare
-wrangler login
-
-# Upload file
-wrangler r2 object put rsna2025-medical-imaging/ct_scan.nii.gz --file=frontend/public/demo-data/medical_imaging/ct_scan.nii.gz
-```
+After uploading, verify both files appear in your bucket:
+1. Go to your bucket → **Objects** tab
+2. You should see both `ct_scan.nii.gz` and `ct_scan_config.json`
+3. Click on each file to verify they uploaded correctly
 
 ## Step 5: Get the Public URL
 
@@ -165,6 +186,16 @@ After adding the environment variable:
 4. Verify that the NIfTI file is being fetched from your R2 URL (not from `/demo-data/...`)
 
 ## Troubleshooting
+
+### Upload Errors (File Size Exceeds 300 MB)
+
+If you see an error like "File size exceeds 300 MB and can only be uploaded using the S3/Workers API":
+
+- **Solution**: Use Wrangler CLI to upload large files (see Step 4)
+- Verify Wrangler is installed: `wrangler --version`
+- Ensure you're logged in: `wrangler login`
+- Check the file path is correct and the file exists
+- For very large files (> 1 GB), consider using multipart upload or S3 API directly
 
 ### CORS Errors
 
