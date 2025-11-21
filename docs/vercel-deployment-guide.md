@@ -5,7 +5,7 @@ This guide will walk you through deploying your Next.js frontend to Vercel and c
 ## Prerequisites
 
 ✅ You have a Vercel account  
-✅ You have a domain from Porkbun (reviewscholar.com)  
+✅ You have a domain from Porkbun (rsna2025-agenticai.com)  
 ✅ Your code is in a Git repository (GitHub, GitLab, or Bitbucket)
 
 ## Step 1: Push Your Code to Git
@@ -22,7 +22,7 @@ git push origin main
 
 1. **Log in to Vercel**: Go to [vercel.com](https://vercel.com) and sign in
 2. **Import Project**: Click "Add New..." → "Project"
-3. **Import Git Repository**: 
+3. **Import Git Repository**:
    - Select your Git provider (GitHub/GitLab/Bitbucket)
    - Find and select your `RSNA2025_DLL_AgenticAI` repository
    - Click "Import"
@@ -32,12 +32,15 @@ git push origin main
 Vercel should automatically detect the Next.js framework. Verify these settings:
 
 ### Framework Preset
+
 - **Framework**: Next.js (should be auto-detected)
 
 ### Root Directory
+
 - **Root Directory**: `frontend` (this tells Vercel to build from the frontend folder)
 
 ### Build and Output Settings
+
 - **Build Command**: `npm run build` (runs from the frontend directory)
 - **Output Directory**: `.next` (Next.js default)
 - **Install Command**: `npm install` (runs from the frontend directory)
@@ -68,7 +71,7 @@ If you plan to connect a backend API later, you can add environment variables:
 
 1. Go to your project → **Settings** → **Domains**
 2. Click **"Add Domain"**
-3. Enter your domain: `reviewscholar.com` (and optionally `www.reviewscholar.com`)
+3. Enter your domain: `rsna2025-agenticai.com` (and optionally `www.rsna2025-agenticai.com`)
 4. Click **"Add"**
 
 Vercel will show you the DNS records you need to configure.
@@ -80,13 +83,15 @@ Based on your Porkbun domain settings, you need to add DNS records:
 1. **Go to DNS Records** section in Porkbun
 2. **Add/Update the following records**:
 
-   For the root domain (`reviewscholar.com`):
+   For the root domain (`rsna2025-agenticai.com`):
+
    - **Type**: `A` or `CNAME`
    - **Name**: `@` (or leave blank for root)
    - **Value**: Vercel will provide this (usually something like `76.76.21.21` for A record, or a CNAME like `cname.vercel-dns.com`)
    - **TTL**: `600` (or default)
 
-   For the www subdomain (`www.reviewscholar.com`):
+   For the www subdomain (`www.rsna2025-agenticai.com`):
+
    - **Type**: `CNAME`
    - **Name**: `www`
    - **Value**: `cname.vercel-dns.com` (or what Vercel provides)
@@ -97,6 +102,7 @@ Based on your Porkbun domain settings, you need to add DNS records:
 ### DNS Propagation
 
 After adding DNS records:
+
 - DNS changes can take 24-48 hours to propagate, but usually happen within minutes to hours
 - You can check propagation status using tools like [whatsmydns.net](https://www.whatsmydns.net)
 
@@ -106,7 +112,7 @@ Vercel automatically provisions SSL certificates via Let's Encrypt once DNS is c
 
 ## Step 8: Verify Deployment
 
-1. Visit your domain: `https://reviewscholar.com`
+1. Visit your domain: `https://rsna2025-agenticai.com`
 2. Check that the site loads correctly
 3. Test the CT viewer and other features
 
@@ -134,6 +140,7 @@ Vercel automatically provisions SSL certificates via Let's Encrypt once DNS is c
 ## Continuous Deployment
 
 Once connected, Vercel will automatically:
+
 - Deploy new commits to the `main` branch to production
 - Create preview deployments for pull requests
 - Run builds on every push
@@ -150,4 +157,3 @@ Once connected, Vercel will automatically:
 - [Vercel Documentation](https://vercel.com/docs)
 - [Next.js Deployment Guide](https://nextjs.org/docs/deployment)
 - [Vercel Domain Configuration](https://vercel.com/docs/concepts/projects/domains)
-
