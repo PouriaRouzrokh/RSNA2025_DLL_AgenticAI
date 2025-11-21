@@ -35,7 +35,14 @@ def upload_to_r2(file_path, bucket_name, object_key, account_id, access_key_id, 
     access_key_id = access_key_id.strip()
     secret_access_key = secret_access_key.strip()
     
-    endpoint_url = f"https://{account_id}.r2.cloudflarestorage.com"
+    # Allow custom endpoint URL (from bucket settings) or construct from account ID
+    # Check if R2_ENDPOINT_URL is set in env, otherwise use account ID
+    custom_endpoint = os.getenv('R2_ENDPOINT_URL', '').strip()
+    if custom_endpoint:
+        endpoint_url = custom_endpoint
+        print(f"Using custom endpoint from R2_ENDPOINT_URL")
+    else:
+        endpoint_url = f"https://{account_id}.r2.cloudflarestorage.com"
     
     print(f"Configuration:")
     print(f"  Endpoint: {endpoint_url}")
@@ -43,11 +50,13 @@ def upload_to_r2(file_path, bucket_name, object_key, account_id, access_key_id, 
     print(f"  Access Key ID: {access_key_id[:10]}...{access_key_id[-4:] if len(access_key_id) > 14 else ''}")
     
     # Create S3 client configured for R2
+    # Note: R2 uses 'auto' for region_name
     s3_client = boto3.client(
         's3',
         endpoint_url=endpoint_url,
         aws_access_key_id=access_key_id,
         aws_secret_access_key=secret_access_key,
+        region_name='auto',  # R2 uses 'auto' for region
         config=Config(
             signature_version='s3v4',
             s3={
@@ -65,20 +74,26 @@ def upload_to_r2(file_path, bucket_name, object_key, account_id, access_key_id, 
         error_msg = str(e)
         print(f"✗ Credential validation failed: {error_msg}")
         print("\nTroubleshooting steps:")
-        print("1. Verify R2_ACCOUNT_ID:")
+        print("1. Get the S3 API endpoint from your bucket settings:")
+        print("   - Go to R2 > Your Bucket > Settings > General")
+        print("   - Find 'S3 API' section")
+        print("   - Copy the endpoint URL (e.g., https://xxxxx.r2.cloudflarestorage.com)")
+        print("   - Add to .env as: R2_ENDPOINT_URL=https://xxxxx.r2.cloudflarestorage.com")
+        print("   - This is often more reliable than using account ID")
+        print("\n2. Verify R2_ACCOUNT_ID:")
         print("   - Found in Cloudflare dashboard (right sidebar on any page)")
         print("   - Should be a long alphanumeric string")
         print("   - No spaces or special characters")
         print(f"   - Current value: {account_id[:20]}...")
-        print("\n2. Verify R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY:")
+        print("\n3. Verify R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY:")
         print("   - Go to R2 > Manage R2 API Tokens")
         print("   - Ensure token has 'Object Read & Write' permissions")
         print("   - Copy Access Key ID and Secret Access Key exactly")
         print("   - No extra spaces or quotes in .env file")
-        print("\n3. Verify bucket name:")
+        print("\n4. Verify bucket name:")
         print(f"   - Current: {bucket_name}")
         print("   - Must match exactly (case-sensitive)")
-        print("\n4. Check .env file format:")
+        print("\n5. Check .env file format:")
         print("   - Each variable should be on its own line")
         print("   - Format: VARIABLE_NAME=value")
         print("   - No spaces around the = sign")
