@@ -8,10 +8,16 @@ export function getNiftiFileUrl() {
   const r2Url = process.env.NEXT_PUBLIC_NIFTI_FILE_URL;
   
   if (r2Url) {
+    if (typeof window !== 'undefined') {
+      console.log('[getNiftiFileUrl] Using R2 URL:', r2Url);
+    }
     return r2Url;
   }
   
   // Fallback to local path for development
+  if (typeof window !== 'undefined') {
+    console.log('[getNiftiFileUrl] Using local fallback');
+  }
   return '/demo-data/medical_imaging/ct_scan.nii.gz';
 }
 
@@ -27,10 +33,17 @@ export function getCtScanConfigUrl() {
     // If using R2, assume config is in the same bucket/directory
     // Replace the filename with config filename
     const baseUrl = r2Url.replace(/\/[^/]+\.nii\.gz$/, '');
-    return `${baseUrl}/ct_scan_config.json`;
+    const configUrl = `${baseUrl}/ct_scan_config.json`;
+    if (typeof window !== 'undefined') {
+      console.log('[getCtScanConfigUrl] Using R2 URL:', configUrl);
+    }
+    return configUrl;
   }
   
   // Fallback to local path
+  if (typeof window !== 'undefined') {
+    console.log('[getCtScanConfigUrl] Using local fallback');
+  }
   return '/demo-data/medical_imaging/ct_scan_config.json';
 }
 
