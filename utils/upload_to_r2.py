@@ -12,8 +12,9 @@ from pathlib import Path
 from botocore.config import Config
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-env_path = Path(__file__).parent / '.env'
+# Load environment variables from .env file in root directory
+# Script is in utils/, so go up one level to find .env
+env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(env_path)
 
 def upload_to_r2(file_path, bucket_name, object_key, account_id, access_key_id, secret_access_key):
