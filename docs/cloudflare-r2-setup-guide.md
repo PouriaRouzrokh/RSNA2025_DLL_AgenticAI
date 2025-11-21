@@ -44,6 +44,10 @@ If you prefer a custom domain instead:
 [
   {
     "AllowedOrigins": [
+      "http://localhost:3000",
+      "http://10.*.*.*:*",
+      "http://192.168.*.*:*",
+      "http://172.*.*.*:*",
       "https://rsna2025-agenticai.com",
       "https://*.vercel.app"
     ],
@@ -197,12 +201,9 @@ To get the full file URL:
 1. Go to your bucket → **Objects** tab
 2. Click on the file `ct_scan.nii.gz`
 3. In the file details, you'll see the **"Public Development URL"** 
-4. Copy the full URL (e.g., `https://pub-xxxxx.r2.dev/rsna2025-medical-imaging/ct_scan.nii.gz`)
+4. Copy the full URL (e.g., `https://pub-xxxxx.r2.dev/ct_scan.nii.gz`)
 
-Or construct it manually:
-```
-https://pub-xxxxx.r2.dev/<bucket-name>/ct_scan.nii.gz
-```
+**Note**: The URL format is `https://pub-xxxxx.r2.dev/<filename>`, without the bucket name in the path.
 
 ### If Using Custom Domain:
 
@@ -223,9 +224,9 @@ https://cdn.rsna2025-agenticai.com/ct_scan.nii.gz
 
 ### Example Values:
 
-- **Public Development URL**: `https://pub-xxxxx.r2.dev/rsna2025-medical-imaging/ct_scan.nii.gz`
+- **Public Development URL**: `https://pub-xxxxx.r2.dev/ct_scan.nii.gz`
   - Replace `xxxxx` with your actual public development URL ID
-  - Replace `rsna2025-medical-imaging` with your bucket name
+  - Note: URL does not include bucket name in the path
 - **Custom Domain**: `https://cdn.rsna2025-agenticai.com/ct_scan.nii.gz`
 
 ## Step 7: Update Your Code

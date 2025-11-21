@@ -8,16 +8,10 @@ export function getNiftiFileUrl() {
   const r2Url = process.env.NEXT_PUBLIC_NIFTI_FILE_URL;
   
   if (r2Url) {
-    if (typeof window !== 'undefined') {
-      console.log('[getNiftiFileUrl] Using R2 URL:', r2Url);
-    }
     return r2Url;
   }
   
   // Fallback to local path for development
-  if (typeof window !== 'undefined') {
-    console.log('[getNiftiFileUrl] Using local fallback');
-  }
   return '/demo-data/medical_imaging/ct_scan.nii.gz';
 }
 

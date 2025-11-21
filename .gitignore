@@ -1,2 +1,4 @@
 *.nii.gz
 .env
+.DS_Store
+.wrangler/
