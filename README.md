@@ -10,28 +10,28 @@ This project demonstrates the application of agentic AI in radiology through a c
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        FRONTEND (Next.js)                    │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Zone A: CT Viewer (50%) | Report Editor (50%)      │  │
-│  ├──────────────────────────────────────────────────────┤  │
-│  │  Zone B: Command Bar + Macro Checkboxes              │  │
-│  ├──────────────────────────────────────────────────────┤  │
-│  │  Zone C: Reference Tray (Collapsible)                │  │
-│  │    - Prior Imaging | EHR | Guidelines | Style        │  │
-│  └──────────────────────────────────────────────────────┘  │
+│                        FRONTEND (Next.js)                   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Zone A: CT Viewer (50%) | Report Editor (50%)       │   │
+│  ├──────────────────────────────────────────────────────┤   │
+│  │  Zone B: Command Bar + Macro Checkboxes              │   │
+│  ├──────────────────────────────────────────────────────┤   │
+│  │  Zone C: Reference Tray (Collapsible)                │   │
+│  │    - Prior Imaging | EHR | Guidelines | Style        │   │
+│  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
                               ↓ HTTP POST
 ┌─────────────────────────────────────────────────────────────┐
-│                    BACKEND (FastAPI + Google ADK)            │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  Agent 1: Orchestrator (Route & Clarify)             │  │
-│  │         ↓                                             │  │
-│  │  Agent 2: Researcher (Call Sub-Agents as Tools)      │  │
-│  │         ↓                                             │  │
-│  │  Agent 3: Synthesizer (Draft/Modify Report)          │  │
-│  │         ↓                                             │  │
-│  │  Agent 4: Formatter (Validate & Structure)           │  │
-│  └──────────────────────────────────────────────────────┘  │
+│                    BACKEND (FastAPI + Google ADK)           │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Agent 1: Orchestrator (Route & Clarify)             │   │
+│  │         ↓                                            │   │
+│  │  Agent 2: Researcher (Call Sub-Agents as Tools)      │   │
+│  │         ↓                                            │   │
+│  │  Agent 3: Synthesizer (Draft/Modify Report)          │   │
+│  │         ↓                                            │   │
+│  │  Agent 4: Formatter (Validate & Structure)           │   │
+│  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -182,7 +182,7 @@ Comprehensive documentation is available in the `/docs` directory:
 
 ## Key Features
 
-### Frontend ✅
+### Frontend (Done)
 
 - ✅ Three-zone layout (CT Viewer, Report Editor, Reference Tray)
 - ✅ NIfTI file loading and visualization
