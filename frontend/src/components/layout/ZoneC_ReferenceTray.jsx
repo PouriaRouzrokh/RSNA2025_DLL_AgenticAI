@@ -233,13 +233,13 @@ export default function ZoneC_ReferenceTray() {
               <PriorImagingTab onOpenModal={handleOpenModal} />
             )}
             {activeTab === 'ehr_data' && (
-              <EHRTab />
+              <EHRTab onOpenModal={handleOpenModal} />
             )}
             {activeTab === 'guidelines' && (
               <GuidelinesTab onOpenModal={handleOpenModal} />
             )}
             {activeTab === 'style_settings' && (
-              <StyleSettingsTab />
+              <StyleSettingsTab onOpenModal={handleOpenModal} />
             )}
           </div>
         )}

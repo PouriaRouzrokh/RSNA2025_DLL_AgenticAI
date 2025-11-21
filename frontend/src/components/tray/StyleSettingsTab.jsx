@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function StyleSettingsTab() {
+export default function StyleSettingsTab({ onOpenModal }) {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [customInstructions, setCustomInstructions] = useState('');
+  const [priorRadiologistReports, setPriorRadiologistReports] = useState([]);
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -21,23 +22,59 @@ export default function StyleSettingsTab() {
     setUploadedFiles(uploadedFiles.filter(f => f.id !== fileId));
   };
 
-  const dummyTemplates = [
-    {
-      id: 1,
-      name: 'Standard Report Template',
-      description: 'Standard radiology reporting format with structured findings and impression.'
-    },
-    {
-      id: 2,
-      name: 'Detailed Report Template',
-      description: 'Comprehensive reporting template with extensive findings description.'
-    },
-    {
-      id: 3,
-      name: 'Brief Report Template',
-      description: 'Concise reporting template for routine studies.'
+  // Load prior radiologist reports from demo-data
+  useEffect(() => {
+    const loadPriorRadiologistReports = async () => {
+      try {
+        // Use the same reports as prior imaging, but these represent radiologist's prior reports
+        const reports = [
+          { filename: 'report_2024_01_15.md', date: '2024-01-15', modality: 'CT Head' },
+          { filename: 'report_2024_06_20.md', date: '2024-06-20', modality: 'CT Chest' },
+          { filename: 'report_2023_11_10.md', date: '2023-11-10', modality: 'CT Abdomen/Pelvis' }
+        ];
+
+        const loadedReports = await Promise.all(
+          reports.map(async (report, idx) => {
+            try {
+              const response = await fetch(`/demo-data/prior_reports/${report.filename}`);
+              const content = await response.text();
+              // Extract summary from first few lines
+              const lines = content.split('\n').filter(l => l.trim());
+              const summary = lines.slice(3, 6).join(' ').substring(0, 100) + '...';
+              return {
+                id: idx + 1,
+                filename: report.filename,
+                date: report.date,
+                modality: report.modality,
+                summary: summary,
+                content: content
+              };
+            } catch (e) {
+              console.error(`Failed to load ${report.filename}:`, e);
+              return null;
+            }
+          })
+        );
+
+        setPriorRadiologistReports(loadedReports.filter(r => r !== null));
+      } catch (error) {
+        console.error('Failed to load prior radiologist reports:', error);
+        setPriorRadiologistReports([]);
+      }
+    };
+
+    loadPriorRadiologistReports();
+  }, []);
+
+  const handleRadiologistReportClick = (report) => {
+    if (onOpenModal) {
+      onOpenModal({
+        type: 'markdown',
+        title: `${report.modality} - ${report.date}`,
+        content: report.content || `# ${report.modality}\n\n**Date:** ${report.date}\n\n**Summary:**\n${report.summary}`
+      });
     }
-  ];
+  };
 
   return (
     <div style={{
@@ -86,6 +123,80 @@ export default function StyleSettingsTab() {
           }}
         />
       </div>
+
+      {/* Prior Radiologist Reports */}
+      {priorRadiologistReports.length > 0 && (
+        <div>
+          <h3 style={{
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: 'var(--text-primary)',
+            marginBottom: '0.75rem'
+          }}>
+            Prior Radiologist Reports
+          </h3>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            marginBottom: '1.5rem'
+          }}>
+            {priorRadiologistReports.map((report) => (
+              <div
+                key={report.id}
+                onClick={() => handleRadiologistReportClick(report)}
+                style={{
+                  padding: '1rem',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent-blue)';
+                  e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                  e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: '0.5rem'
+                }}>
+                  <div>
+                    <div style={{
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      color: 'var(--text-primary)',
+                      marginBottom: '0.25rem'
+                    }}>
+                      {report.modality}
+                    </div>
+                    <div style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      {report.date}
+                    </div>
+                  </div>
+                </div>
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: '1.5'
+                }}>
+                  {report.summary}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Upload Area */}
       <div>
@@ -204,61 +315,6 @@ export default function StyleSettingsTab() {
           </div>
         </div>
       )}
-
-      {/* Report Templates */}
-      <div>
-        <h3 style={{
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: 'var(--text-primary)',
-          marginBottom: '0.75rem'
-        }}>
-          Report Templates
-        </h3>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem'
-        }}>
-          {dummyTemplates.map((template) => (
-            <div
-              key={template.id}
-              style={{
-                padding: '1rem',
-                backgroundColor: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                cursor: 'pointer',
-                transition: 'all var(--transition-fast)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent-blue)';
-                e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
-              }}
-            >
-              <div style={{
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: 'var(--text-primary)',
-                marginBottom: '0.25rem'
-              }}>
-                {template.name}
-              </div>
-              <div style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-                lineHeight: '1.5'
-              }}>
-                {template.description}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

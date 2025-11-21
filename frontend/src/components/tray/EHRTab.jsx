@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-export default function EHRTab() {
+export default function EHRTab({ onOpenModal }) {
   const [ehrData, setEhrData] = useState(null);
 
   useEffect(() => {
@@ -253,32 +253,75 @@ export default function EHRTab() {
         }}>
           Clinical Notes
         </h3>
-        {ehrData.clinicalNotes.map((note, idx) => (
-          <div
-            key={idx}
-            style={{
-              padding: '0.75rem',
-              backgroundColor: 'var(--bg-tertiary)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: '0.5rem'
-            }}
-          >
-            <div style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-secondary)',
-              marginBottom: '0.5rem'
-            }}>
-              {note.date} - {note.provider}{note.specialty ? ` (${note.specialty})` : ''}
+        {ehrData.clinicalNotes.map((note, idx) => {
+          // Truncate note for preview (show first 150 characters)
+          const previewLength = 150;
+          const noteText = note.note || '';
+          const isLongNote = noteText.length > previewLength;
+          const previewText = isLongNote ? noteText.substring(0, previewLength) + '...' : noteText;
+          
+          const handleNoteClick = () => {
+            if (onOpenModal) {
+              // Format the note content for the modal
+              const formattedContent = `# Clinical Note\n\n**Date:** ${note.date}\n**Provider:** ${note.provider}${note.specialty ? ` (${note.specialty})` : ''}\n\n---\n\n${note.note}`;
+              
+              onOpenModal({
+                type: 'markdown',
+                title: `Clinical Note - ${note.date}`,
+                content: formattedContent
+              });
+            }
+          };
+
+          return (
+            <div
+              key={idx}
+              onClick={handleNoteClick}
+              style={{
+                padding: '0.75rem',
+                backgroundColor: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '0.5rem',
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-blue)';
+                e.currentTarget.style.backgroundColor = 'var(--hover-bg)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-subtle)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
+              }}
+            >
+              <div style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+                marginBottom: '0.5rem'
+              }}>
+                {note.date} - {note.provider}{note.specialty ? ` (${note.specialty})` : ''}
+              </div>
+              <div style={{
+                fontSize: '0.875rem',
+                color: 'var(--text-primary)',
+                lineHeight: '1.5'
+              }}>
+                {previewText}
+              </div>
+              {isLongNote && (
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--accent-blue)',
+                  marginTop: '0.5rem',
+                  fontStyle: 'italic'
+                }}>
+                  Click to view full note...
+                </div>
+              )}
             </div>
-            <div style={{
-              fontSize: '0.875rem',
-              color: 'var(--text-primary)',
-              lineHeight: '1.5'
-            }}>
-              {note.note}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

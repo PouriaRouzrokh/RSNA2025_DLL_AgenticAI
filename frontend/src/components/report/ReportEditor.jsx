@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useReportStore } from '@/hooks/useReportState';
+import { getReportTexts } from '@/utils/ctScanConfig';
 
 export default function ReportEditor() {
   const {
@@ -13,11 +14,50 @@ export default function ReportEditor() {
     setCursorPosition
   } = useReportStore();
 
-  // Initialize indication with placeholder if empty
+  const [techniqueText, setTechniqueText] = useState('');
+  const [indicationPlaceholder, setIndicationPlaceholder] = useState('To rule out nodules');
+  const [patientName, setPatientName] = useState('');
+  const [radiologistName, setRadiologistName] = useState('');
+  const [studyDate, setStudyDate] = useState('');
+
+  // Load report texts from CT scan config
   useEffect(() => {
-    if (!indication) {
-      updateField('indication', 'To rule out nodules');
-    }
+    const loadReportTexts = async () => {
+      try {
+        const texts = await getReportTexts('/demo-data/medical_imaging/ct_scan.nii.gz');
+        if (texts.technique) {
+          setTechniqueText(texts.technique);
+        }
+        if (texts.indication) {
+          setIndicationPlaceholder(texts.indication);
+          // Initialize indication if empty
+          if (!indication) {
+            updateField('indication', texts.indication);
+          }
+        } else if (!indication) {
+          // Fallback to default if no config
+          updateField('indication', 'To rule out nodules');
+        }
+        if (texts.patientName) {
+          setPatientName(texts.patientName);
+        }
+        if (texts.radiologistName) {
+          setRadiologistName(texts.radiologistName);
+        }
+        if (texts.studyDate) {
+          setStudyDate(texts.studyDate);
+        }
+      } catch (error) {
+        console.error('Error loading report texts:', error);
+        // Fallback to defaults
+        if (!indication) {
+          updateField('indication', 'To rule out nodules');
+        }
+        setTechniqueText('CT Chest with contrast. 100mL of non-ionic contrast material (Iohexol 350 mgI/mL) administered intravenously. Images acquired in portal venous phase.');
+      }
+    };
+    
+    loadReportTexts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,6 +143,38 @@ export default function ReportEditor() {
         </div>
       </div>
 
+      {/* Patient Information */}
+      {(patientName || radiologistName || studyDate) && (
+        <div style={{
+          padding: '0.75rem 1.5rem',
+          borderBottom: '1px solid var(--border-subtle)',
+          backgroundColor: 'var(--bg-secondary)',
+          display: 'flex',
+          gap: '2rem',
+          flexWrap: 'wrap',
+          fontSize: '0.875rem'
+        }}>
+          {patientName && (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>Patient:</span>
+              <span style={{ color: 'var(--text-primary)' }}>{patientName}</span>
+            </div>
+          )}
+          {studyDate && (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>Study Date:</span>
+              <span style={{ color: 'var(--text-primary)' }}>{studyDate}</span>
+            </div>
+          )}
+          {radiologistName && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>Radiologist:</span>
+              <span style={{ color: 'var(--text-primary)' }}>{radiologistName}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Form Fields */}
       <div style={{
         flex: 1,
@@ -125,7 +197,7 @@ export default function ReportEditor() {
           </label>
           <textarea
             id="indication"
-            value={indication || 'To rule out nodules'}
+            value={indication || indicationPlaceholder}
             onChange={(e) => handleFieldChange('indication', e.target.value)}
             onFocus={(e) => handleFieldFocus('indication', e)}
             placeholder="Enter further clinical indication to be included in the report if necessary"
@@ -183,7 +255,7 @@ export default function ReportEditor() {
             fontSize: '0.875rem',
             lineHeight: '1.6'
           }}>
-            CT Chest with contrast. 100mL of non-ionic contrast material (Iohexol 350 mgI/mL) administered intravenously. Images acquired in portal venous phase.
+            {techniqueText || 'CT Chest with contrast. 100mL of non-ionic contrast material (Iohexol 350 mgI/mL) administered intravenously. Images acquired in portal venous phase.'}
           </div>
         </div>
 

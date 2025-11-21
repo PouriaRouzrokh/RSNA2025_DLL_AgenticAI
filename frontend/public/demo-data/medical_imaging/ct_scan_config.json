@@ -2,6 +2,11 @@
   {
     "file_path": "/demo-data/medical_imaging/ct_scan.nii.gz",
     "rescale_intercept": -1024,
-    "rescale_slope": 1
+    "rescale_slope": 1,
+    "indication": "To rule out nodules",
+    "technique": "CT Chest without IV or oral contrast.",
+    "patient_name": "John Doe",
+    "radiologist_name": "Dr. Jane Smith",
+    "study_date": "2024-01-15"
   }
 ]

@@ -51,3 +51,31 @@ export async function getRescaleValues(filePath) {
   };
 }
 
+export async function getReportTexts(filePath) {
+  const configs = await loadCTScanConfig();
+  let config = configs.find(c => c.file_path === filePath);
+  
+  if (!config && filePath) {
+    const fileName = filePath.split('/').pop();
+    config = configs.find(c => c.file_path.split('/').pop() === fileName);
+  }
+
+  if (config) {
+    return {
+      indication: config.indication || null,
+      technique: config.technique || null,
+      patientName: config.patient_name || null,
+      radiologistName: config.radiologist_name || null,
+      studyDate: config.study_date || null
+    };
+  }
+
+  return {
+    indication: null,
+    technique: null,
+    patientName: null,
+    radiologistName: null,
+    studyDate: null
+  };
+}
+
