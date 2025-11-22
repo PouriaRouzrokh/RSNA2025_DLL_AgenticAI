@@ -1,6 +1,7 @@
 import * as nifti from 'nifti-reader-js';
 import { NIFTI1 } from 'nifti-reader-js';
 import { getRescaleValues } from './ctScanConfig';
+import { loadCachedNiftiData, cacheNiftiData, hasCachedData } from './niftiCache';
 
 async function loadPreprocessedFile(url) {
   try {
@@ -57,10 +58,75 @@ async function loadPreprocessedFile(url) {
  */
 export async function loadNiftiFile(url) {
   try {
-    // Try preprocessed file first (much faster)
+    // Try cache first (fastest)
+    const cached = await loadCachedNiftiData(url);
+    if (cached) {
+      // Get rescale values (may override cached header values)
+      const csvRescale = await getRescaleValues(url);
+      
+      let sclSlope, sclInter;
+      if (csvRescale.rescaleSlope != null) {
+        sclSlope = csvRescale.rescaleSlope;
+        sclInter = csvRescale.rescaleIntercept != null ? csvRescale.rescaleIntercept : 0;
+      } else {
+        // Use cached values (from headerData or cached directly)
+        sclSlope = cached.sclSlope;
+        sclInter = cached.sclInter;
+      }
+      
+      // Reconstruct header object from cached headerData if available
+      // Create a minimal header-like object for compatibility
+      let header = null;
+      if (cached.headerData) {
+        // Create a header-like object from cached data
+        header = {
+          dims: cached.headerData.dims,
+          pixDims: cached.headerData.pixDims,
+          datatypeCode: cached.headerData.datatypeCode,
+          scl_slope: cached.headerData.scl_slope,
+          scl_inter: cached.headerData.scl_inter,
+          cal_min: cached.headerData.cal_min,
+          cal_max: cached.headerData.cal_max,
+          qform_code: cached.headerData.qform_code,
+          sform_code: cached.headerData.sform_code,
+          quatern_b: cached.headerData.quatern_b,
+          quatern_c: cached.headerData.quatern_c,
+          quatern_d: cached.headerData.quatern_d,
+          qoffset_x: cached.headerData.qoffset_x,
+          qoffset_y: cached.headerData.qoffset_y,
+          qoffset_z: cached.headerData.qoffset_z,
+          srow_x: cached.headerData.srow_x,
+          srow_y: cached.headerData.srow_y,
+          srow_z: cached.headerData.srow_z,
+        };
+      }
+      
+      // Combine cached volume with cached header data
+      const niftiData = {
+        volume: cached.volume,
+        dimensions: cached.dimensions,
+        pixelDimensions: cached.pixelDimensions,
+        header: header, // Reconstructed from cached headerData
+        datatypeCode: cached.datatypeCode,
+        sclSlope: sclSlope, // May be overridden by CSV config
+        sclInter: sclInter, // May be overridden by CSV config
+        calMin: cached.calMin,
+        calMax: cached.calMax
+      };
+      
+      return niftiData;
+    }
+    
+    // Try preprocessed file second (much faster than raw NIfTI)
     const preprocessed = await loadPreprocessedFile(url);
     if (preprocessed) {
-      console.log(`Loaded preprocessed file for ${url}`);
+      // Cache the preprocessed data for next time
+      try {
+        await cacheNiftiData(url, preprocessed);
+      } catch (error) {
+        console.error('Failed to cache preprocessed data:', error);
+        // Don't throw - caching is optional
+      }
       return preprocessed;
     }
 
@@ -252,7 +318,8 @@ export async function loadNiftiFile(url) {
       console.warn(`Volume size mismatch: expected ${expectedSize}, got ${volume.length}. Using actual size.`);
     }
 
-    return {
+    // Create the niftiData object
+    const niftiData = {
       volume: volume,
       dimensions: {
         x: x,
@@ -272,6 +339,16 @@ export async function loadNiftiFile(url) {
       calMin: header.cal_min,
       calMax: header.cal_max
     };
+    
+    // Cache the loaded data for next time
+    try {
+      await cacheNiftiData(url, niftiData);
+    } catch (error) {
+      console.error('Exception during cache storage:', error);
+      // Don't throw - caching is optional, continue with loaded data
+    }
+    
+    return niftiData;
   } catch (error) {
     console.error('Error loading NIfTI file:', error);
     throw error;

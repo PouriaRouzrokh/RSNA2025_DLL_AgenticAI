@@ -17,7 +17,10 @@ export default function FullScreenViewer({
   niftiData,
   loading,
   onDownloadClick,
-  downloadTriggered
+  downloadTriggered,
+  isLoadingFromCache,
+  hasCachedData,
+  useCloudFiles
 }) {
   // Handle ESC key to close
   useEffect(() => {
@@ -123,6 +126,9 @@ export default function FullScreenViewer({
             loading={loading}
             onDownloadClick={onDownloadClick}
             downloadTriggered={downloadTriggered}
+            isLoadingFromCache={isLoadingFromCache}
+            hasCachedData={hasCachedData}
+            useCloudFiles={useCloudFiles}
           />
         </div>
         <ViewerControls

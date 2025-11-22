@@ -17,6 +17,9 @@ export default function CTViewer({
   loading: externalLoading = false,
   onDownloadClick,
   downloadTriggered = false,
+  isLoadingFromCache = false,
+  hasCachedData = false,
+  useCloudFiles = false,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -113,7 +116,18 @@ export default function CTViewer({
       ctx.fillStyle = "#ffffff";
       ctx.font = "16px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("Loading CT scan study...", width / 2, height / 2);
+      let loadingText;
+      if (!useCloudFiles) {
+        // Local files - always loading, never downloading
+        loadingText = "Loading CT scan study...";
+      } else if (isLoadingFromCache) {
+        // Cloud files with cache
+        loadingText = "Loading CT scan study from cache...";
+      } else {
+        // Cloud files without cache - downloading
+        loadingText = "Downloading CT scan study...";
+      }
+      ctx.fillText(loadingText, width / 2, height / 2);
       return;
     }
 
@@ -187,7 +201,7 @@ export default function CTViewer({
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(tempCanvas, offsetX, offsetY, scaledWidth, scaledHeight);
-  }, [currentSlice, currentView, dataVersion, loading, error, windowLevel, canvasSize, zoom, panOffset]);
+  }, [currentSlice, currentView, dataVersion, loading, error, windowLevel, canvasSize, zoom, panOffset, isLoadingFromCache]);
 
   // Throttle wheel events to prevent rapid updates
   const wheelTimeoutRef = useRef(null);
@@ -543,7 +557,7 @@ export default function CTViewer({
                 e.target.style.transform = "scale(1)";
               }}
             >
-              Download CT Data
+              {hasCachedData ? "Load CT Data" : "Download CT Data"}
             </button>
             <div
               style={{
@@ -553,7 +567,9 @@ export default function CTViewer({
                 maxWidth: "300px",
               }}
             >
-              Click to download and load the CT scan study
+              {hasCachedData
+                ? "Click to load the CT scan study from cache"
+                : "Click to download the CT scan study"}
             </div>
           </div>
         )}

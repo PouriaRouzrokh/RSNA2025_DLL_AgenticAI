@@ -3,7 +3,7 @@
  * Controlled by NEXT_PUBLIC_USE_CLOUD_FILES environment variable
  * @returns {boolean} True if cloud files should be used
  */
-function shouldUseCloudFiles() {
+export function shouldUseCloudFiles() {
   const useCloud = process.env.NEXT_PUBLIC_USE_CLOUD_FILES;
   // Treat 'true', '1', 'yes' as true, everything else as false
   return useCloud === 'true' || useCloud === '1' || useCloud === 'yes';

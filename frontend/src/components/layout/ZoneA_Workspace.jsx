@@ -6,7 +6,8 @@ import ViewerControls from "@/components/viewer/ViewerControls";
 import ReportEditor from "@/components/report/ReportEditor";
 import FullScreenViewer from "@/components/modals/FullScreenViewer";
 import { loadNiftiFile, calculateTargetSliceCount } from "@/utils/niftiLoader";
-import { getNiftiFileUrl } from "@/utils/niftiFileUrl";
+import { getNiftiFileUrl, shouldUseCloudFiles } from "@/utils/niftiFileUrl";
+import { hasCachedData } from "@/utils/niftiCache";
 
 export default function ZoneA_Workspace() {
   const [currentSlice, setCurrentSlice] = useState(1);
@@ -17,6 +18,9 @@ export default function ZoneA_Workspace() {
   const [loading, setLoading] = useState(false); // Start as false - don't load automatically
   const [niftiDataVersion, setNiftiDataVersion] = useState(0); // Version counter to trigger re-renders
   const [downloadTriggered, setDownloadTriggered] = useState(false); // Track if download has been triggered
+  const [isLoadingFromCache, setIsLoadingFromCache] = useState(false); // Track if loading from cache
+  const [hasCachedDataState, setHasCachedDataState] = useState(false); // Track if cached data exists
+  const [useCloudFiles, setUseCloudFiles] = useState(false); // Track if using cloud files
 
   // Store the actual volume data in a ref to avoid React DevTools serialization issues
   const niftiDataRef = useRef(null);
@@ -28,6 +32,33 @@ export default function ZoneA_Workspace() {
     sagittal: null,
     coronal: null,
   });
+
+  // Check cache on mount to determine button text
+  useEffect(() => {
+    const checkCache = async () => {
+      try {
+        const fileUrl = getNiftiFileUrl();
+        const useCloud = shouldUseCloudFiles();
+        setUseCloudFiles(useCloud);
+        
+        // If using local files, always show "Load" (no download needed)
+        if (!useCloud) {
+          setHasCachedDataState(true);
+          return;
+        }
+        
+        // If using cloud files, check if cache exists
+        const hasCache = await hasCachedData(fileUrl);
+        setHasCachedDataState(hasCache);
+      } catch (error) {
+        console.error('Error checking cache:', error);
+        // On error, check if using local files
+        const useCloud = shouldUseCloudFiles();
+        setHasCachedDataState(!useCloud); // Show "Load" for local, "Download" for cloud on error
+      }
+    };
+    checkCache();
+  }, []);
 
   // Getter function for use in effects
   const getNiftiData = useCallback(() => niftiDataRef.current, []);
@@ -61,12 +92,35 @@ export default function ZoneA_Workspace() {
 
     let cancelled = false;
 
-    const loadFile = async () => {
+        const loadFile = async () => {
       try {
         setLoading(true);
-        const data = await loadNiftiFile(getNiftiFileUrl());
+        const fileUrl = getNiftiFileUrl();
+        
+        // Check if using cloud files
+        const useCloud = shouldUseCloudFiles();
+        
+        // Check if data exists in cache (only relevant for cloud files)
+        if (useCloud) {
+          const hasCache = await hasCachedData(fileUrl);
+          setIsLoadingFromCache(hasCache);
+        } else {
+          // Local files - not loading from cache, just loading locally
+          setIsLoadingFromCache(false);
+        }
+        
+        const data = await loadNiftiFile(fileUrl);
 
         if (cancelled) return;
+
+        // After loading, check if cache now exists (it should, since we just cached it)
+        // This updates the button text for next time
+        // Wait a bit for IndexedDB to finish writing
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const cacheNowExists = await hasCachedData(fileUrl);
+        if (cacheNowExists) {
+          setHasCachedDataState(true);
+        }
 
         // Store in ref instead of state to avoid React DevTools serialization
         niftiDataRef.current = data;
@@ -244,6 +298,9 @@ export default function ZoneA_Workspace() {
               loading={loading}
               onDownloadClick={handleDownloadClick}
               downloadTriggered={downloadTriggered}
+              isLoadingFromCache={isLoadingFromCache}
+              hasCachedData={hasCachedDataState}
+              useCloudFiles={useCloudFiles}
             />
           </div>
           <ViewerControls
@@ -289,6 +346,9 @@ export default function ZoneA_Workspace() {
           loading={loading}
           onDownloadClick={handleDownloadClick}
           downloadTriggered={downloadTriggered}
+          isLoadingFromCache={isLoadingFromCache}
+          hasCachedData={hasCachedDataState}
+          useCloudFiles={useCloudFiles}
         />
       )}
     </>
