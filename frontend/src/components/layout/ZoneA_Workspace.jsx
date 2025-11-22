@@ -14,8 +14,9 @@ export default function ZoneA_Workspace() {
   const [currentView, setCurrentView] = useState("axial"); // 'axial', 'sagittal', 'coronal'
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [totalSlices, setTotalSlices] = useState(20); // Will be updated when NIfTI loads
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start as false - don't load automatically
   const [niftiDataVersion, setNiftiDataVersion] = useState(0); // Version counter to trigger re-renders
+  const [downloadTriggered, setDownloadTriggered] = useState(false); // Track if download has been triggered
 
   // Store the actual volume data in a ref to avoid React DevTools serialization issues
   const niftiDataRef = useRef(null);
@@ -54,8 +55,10 @@ export default function ZoneA_Workspace() {
     setNiftiDataWrapper(wrapper);
   }, []);
 
-  // Load NIfTI file once and share between regular and fullscreen views
+  // Load NIfTI file when download is triggered
   useEffect(() => {
+    if (!downloadTriggered) return; // Don't load until button is clicked
+
     let cancelled = false;
 
     const loadFile = async () => {
@@ -109,7 +112,7 @@ export default function ZoneA_Workspace() {
         setLoading(false);
       } catch (err) {
         if (cancelled) return;
-        console.error("Failed to load NIfTI file:", err);
+        console.error("Failed to load CT scan study:", err);
         setLoading(false);
       }
     };
@@ -120,7 +123,12 @@ export default function ZoneA_Workspace() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only load once on mount
+  }, [downloadTriggered]); // Load when downloadTriggered changes
+
+  // Function to trigger download
+  const handleDownloadClick = useCallback(() => {
+    setDownloadTriggered(true);
+  }, []);
 
   // Track current slice per view when it changes (but not when view changes)
   const prevViewRef = useRef(currentView);
@@ -234,6 +242,8 @@ export default function ZoneA_Workspace() {
               onMaximize={handleMaximize}
               niftiData={niftiDataWrapper}
               loading={loading}
+              onDownloadClick={handleDownloadClick}
+              downloadTriggered={downloadTriggered}
             />
           </div>
           <ViewerControls
@@ -277,6 +287,8 @@ export default function ZoneA_Workspace() {
           totalSlices={totalSlices}
           niftiData={niftiDataWrapper}
           loading={loading}
+          onDownloadClick={handleDownloadClick}
+          downloadTriggered={downloadTriggered}
         />
       )}
     </>

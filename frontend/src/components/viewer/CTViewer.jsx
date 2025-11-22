@@ -15,6 +15,8 @@ export default function CTViewer({
   onMaximize,
   niftiData: externalNiftiData = null,
   loading: externalLoading = false,
+  onDownloadClick,
+  downloadTriggered = false,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -25,6 +27,16 @@ export default function CTViewer({
   const loading = externalNiftiData ? false : externalLoading;
   const [error, setError] = useState(null);
   const [dataVersion, setDataVersion] = useState(0); // Version counter to trigger re-renders
+  
+  // Zoom and pan state
+  const [zoom, setZoom] = useState(1.0);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  
+  // Help dialog state
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
+  
+  // Show download button when no data is loaded and download hasn't been triggered
+  const showDownloadButton = !externalNiftiData && !loading && !downloadTriggered;
 
   useEffect(() => {
     if (externalNiftiData) {
@@ -101,7 +113,7 @@ export default function CTViewer({
       ctx.fillStyle = "#ffffff";
       ctx.font = "16px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("Loading NIfTI file...", width / 2, height / 2);
+      ctx.fillText("Loading CT scan study...", width / 2, height / 2);
       return;
     }
 
@@ -154,29 +166,28 @@ export default function CTViewer({
     }
     tempCtx.putImageData(tempImageData, 0, 0);
 
-    const scale = Math.min(width / validWidth, height / validHeight);
-    const scaledWidth = validWidth * scale;
-    const scaledHeight = validHeight * scale;
-    const offsetX = (width - scaledWidth) / 2;
-    const offsetY = (height - scaledHeight) / 2;
+    // Calculate base scale (fit to canvas)
+    const baseScale = Math.min(width / validWidth, height / validHeight);
+    
+    // Apply zoom
+    const finalScale = baseScale * zoom;
+    const scaledWidth = validWidth * finalScale;
+    const scaledHeight = validHeight * finalScale;
+    
+    // Calculate center offset
+    const baseOffsetX = (width - scaledWidth) / 2;
+    const baseOffsetY = (height - scaledHeight) / 2;
+    
+    // Apply pan offset (only when zoomed in)
+    const offsetX = baseOffsetX + (zoom > 1.0 ? panOffset.x : 0);
+    const offsetY = baseOffsetY + (zoom > 1.0 ? panOffset.y : 0);
 
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(tempCanvas, offsetX, offsetY, scaledWidth, scaledHeight);
-
-    ctx.strokeStyle = "#60a5fa";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath();
-    ctx.moveTo(width / 2, 0);
-    ctx.lineTo(width / 2, height);
-    ctx.moveTo(0, height / 2);
-    ctx.lineTo(width, height / 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }, [currentSlice, currentView, dataVersion, loading, error, windowLevel, canvasSize]);
+  }, [currentSlice, currentView, dataVersion, loading, error, windowLevel, canvasSize, zoom, panOffset]);
 
   // Throttle wheel events to prevent rapid updates
   const wheelTimeoutRef = useRef(null);
@@ -184,6 +195,15 @@ export default function CTViewer({
   const currentSliceRef = useRef(currentSlice);
   const actualTotalSlicesRef = useRef(actualTotalSlices);
   const totalSlicesRef = useRef(totalSlices);
+  
+  // Mouse drag state for slice scrolling (left click)
+  const isMouseDownRef = useRef(false);
+  const lastMouseYRef = useRef(0);
+  const lastMouseMoveTimeRef = useRef(0);
+  
+  // Right-click pan state
+  const isRightMouseDownRef = useRef(false);
+  const lastPanMousePosRef = useRef({ x: 0, y: 0 });
 
   // Keep refs in sync
   useEffect(() => {
@@ -200,30 +220,90 @@ export default function CTViewer({
 
   const handleWheel = useCallback(
     (e) => {
-      if (!onSliceChange) return;
       e.preventDefault();
 
+      // Check if Ctrl key is pressed (or Cmd on Mac)
+      const isZoomMode = e.ctrlKey || e.metaKey;
+
+      if (isZoomMode) {
+        // Zoom mode: Ctrl + scroll
+        const zoomFactor = 1.1;
+        const delta = e.deltaY > 0 ? 1 / zoomFactor : zoomFactor;
+        
+        setZoom((prevZoom) => {
+          const newZoom = prevZoom * delta;
+          // Clamp zoom between 0.5x and 5x
+          const clampedZoom = Math.max(0.5, Math.min(5.0, newZoom));
+          
+          // Reset pan when zooming back to 1.0 or below
+          if (clampedZoom <= 1.0) {
+            setPanOffset({ x: 0, y: 0 });
+          }
+          
+          return clampedZoom;
+        });
+      } else {
+        // Slice scrolling mode: normal scroll
+        if (!onSliceChange) return;
+
+        const now = Date.now();
+        const timeSinceLastWheel = now - lastWheelTimeRef.current;
+
+        // Throttle to max 1 update per 50ms
+        if (timeSinceLastWheel < 50) {
+          return;
+        }
+
+        // Clear any pending timeout
+        if (wheelTimeoutRef.current) {
+          clearTimeout(wheelTimeoutRef.current);
+          wheelTimeoutRef.current = null;
+        }
+
+        lastWheelTimeRef.current = now;
+
+        const delta = e.deltaY > 0 ? 1 : -1;
+        const niftiData = niftiDataRef.current;
+        const maxSlices = niftiData ? actualTotalSlicesRef.current : totalSlicesRef.current;
+        const currentSliceValue = currentSliceRef.current;
+        const newSlice = currentSliceValue + delta;
+        const clampedSlice = Math.max(1, Math.min(maxSlices, newSlice));
+
+        // Only update if slice actually changed
+        if (clampedSlice !== currentSliceValue) {
+          onSliceChange(clampedSlice);
+        }
+      }
+    },
+    [onSliceChange]
+  ); // Only depend on onSliceChange which should be stable
+
+  // Helper function to update slice based on movement
+  const updateSliceFromMovement = useCallback(
+    (deltaY) => {
+      if (!onSliceChange) return;
+
       const now = Date.now();
-      const timeSinceLastWheel = now - lastWheelTimeRef.current;
+      const timeSinceLastMove = now - lastMouseMoveTimeRef.current;
 
       // Throttle to max 1 update per 50ms
-      if (timeSinceLastWheel < 50) {
+      if (timeSinceLastMove < 50) {
         return;
       }
 
-      // Clear any pending timeout
-      if (wheelTimeoutRef.current) {
-        clearTimeout(wheelTimeoutRef.current);
-        wheelTimeoutRef.current = null;
-      }
+      lastMouseMoveTimeRef.current = now;
 
-      lastWheelTimeRef.current = now;
+      // Moving up (negative deltaY) should decrease slice number
+      // Moving down (positive deltaY) should increase slice number
+      // Scale the movement: every 5 pixels of movement = 1 slice change
+      const sliceDelta = Math.round(-deltaY / 5);
+      
+      if (sliceDelta === 0) return;
 
-      const delta = e.deltaY > 0 ? 1 : -1;
       const niftiData = niftiDataRef.current;
       const maxSlices = niftiData ? actualTotalSlicesRef.current : totalSlicesRef.current;
       const currentSliceValue = currentSliceRef.current;
-      const newSlice = currentSliceValue + delta;
+      const newSlice = currentSliceValue + sliceDelta;
       const clampedSlice = Math.max(1, Math.min(maxSlices, newSlice));
 
       // Only update if slice actually changed
@@ -232,7 +312,147 @@ export default function CTViewer({
       }
     },
     [onSliceChange]
-  ); // Only depend on onSliceChange which should be stable
+  );
+
+  // Handle mouse down
+  const handleMouseDown = useCallback(
+    (e) => {
+      // Don't start drag if clicking on the download button
+      if (showDownloadButton) return;
+      
+      e.preventDefault();
+      
+      // Handle left mouse button for slice scrolling
+      if (e.button === 0) {
+        isMouseDownRef.current = true;
+        lastMouseYRef.current = e.clientY;
+        lastMouseMoveTimeRef.current = Date.now();
+
+        // Add global mouse event listeners for smooth dragging outside viewer bounds
+        const handleGlobalMouseMove = (moveEvent) => {
+          if (!isMouseDownRef.current) return;
+          const currentY = moveEvent.clientY;
+          const deltaY = currentY - lastMouseYRef.current;
+          
+          if (Math.abs(deltaY) > 0) {
+            updateSliceFromMovement(deltaY);
+            lastMouseYRef.current = currentY;
+          }
+        };
+
+        const handleGlobalMouseUp = (upEvent) => {
+          if (upEvent.button === 0) {
+            isMouseDownRef.current = false;
+            window.removeEventListener("mousemove", handleGlobalMouseMove);
+            window.removeEventListener("mouseup", handleGlobalMouseUp);
+          }
+        };
+
+        window.addEventListener("mousemove", handleGlobalMouseMove);
+        window.addEventListener("mouseup", handleGlobalMouseUp);
+      }
+      // Handle right mouse button for panning (only when zoomed in)
+      else if (e.button === 2 && zoom > 1.0) {
+        isRightMouseDownRef.current = true;
+        lastPanMousePosRef.current = { x: e.clientX, y: e.clientY };
+
+        // Add global mouse event listeners for panning
+        const handleGlobalMouseMove = (moveEvent) => {
+          if (!isRightMouseDownRef.current) return;
+          const currentX = moveEvent.clientX;
+          const currentY = moveEvent.clientY;
+          const deltaX = currentX - lastPanMousePosRef.current.x;
+          const deltaY = currentY - lastPanMousePosRef.current.y;
+          
+          setPanOffset((prev) => ({
+            x: prev.x + deltaX,
+            y: prev.y + deltaY,
+          }));
+          
+          lastPanMousePosRef.current = { x: currentX, y: currentY };
+        };
+
+        const handleGlobalMouseUp = (upEvent) => {
+          if (upEvent.button === 2) {
+            isRightMouseDownRef.current = false;
+            window.removeEventListener("mousemove", handleGlobalMouseMove);
+            window.removeEventListener("mouseup", handleGlobalMouseUp);
+          }
+        };
+
+        window.addEventListener("mousemove", handleGlobalMouseMove);
+        window.addEventListener("mouseup", handleGlobalMouseUp);
+      }
+    },
+    [showDownloadButton, updateSliceFromMovement, zoom]
+  );
+
+  // Handle mouse move (for local movement within viewer)
+  const handleMouseMove = useCallback(
+    (e) => {
+      // Handle left-click slice scrolling
+      if (isMouseDownRef.current) {
+        e.preventDefault();
+        const currentY = e.clientY;
+        const deltaY = currentY - lastMouseYRef.current;
+        
+        if (Math.abs(deltaY) > 0) {
+          updateSliceFromMovement(deltaY);
+          lastMouseYRef.current = currentY;
+        }
+      }
+      // Handle right-click panning
+      else if (isRightMouseDownRef.current && zoom > 1.0) {
+        e.preventDefault();
+        const currentX = e.clientX;
+        const currentY = e.clientY;
+        const deltaX = currentX - lastPanMousePosRef.current.x;
+        const deltaY = currentY - lastPanMousePosRef.current.y;
+        
+        setPanOffset((prev) => ({
+          x: prev.x + deltaX,
+          y: prev.y + deltaY,
+        }));
+        
+        lastPanMousePosRef.current = { x: currentX, y: currentY };
+      }
+    },
+    [updateSliceFromMovement, zoom]
+  );
+
+  // Handle mouse up
+  const handleMouseUp = useCallback((e) => {
+    if (e.button === 0) {
+      isMouseDownRef.current = false;
+    } else if (e.button === 2) {
+      isRightMouseDownRef.current = false;
+    }
+  }, []);
+
+  // Handle mouse leave (in case mouse is released outside viewer)
+  const handleMouseLeave = useCallback(() => {
+    isMouseDownRef.current = false;
+    isRightMouseDownRef.current = false;
+  }, []);
+  
+  // Reset pan when slice changes
+  useEffect(() => {
+    setPanOffset({ x: 0, y: 0 });
+  }, [currentSlice, currentView]);
+
+  // Handle Escape key to close help dialog
+  useEffect(() => {
+    if (!showHelpDialog) return;
+
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        setShowHelpDialog(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [showHelpDialog]);
 
   return (
     <div
@@ -243,8 +463,19 @@ export default function CTViewer({
         flexDirection: "column",
         backgroundColor: "#000000",
         position: "relative",
+        userSelect: "none", // Prevent text selection during drag
       }}
       onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      onContextMenu={(e) => {
+        // Prevent context menu when right-clicking for panning
+        if (zoom > 1.0) {
+          e.preventDefault();
+        }
+      }}
     >
       {/* Viewer Canvas */}
       <div
@@ -270,9 +501,62 @@ export default function CTViewer({
             width: "100%",
             height: "100%",
             objectFit: "contain",
-            cursor: "crosshair",
+            cursor: showDownloadButton ? "pointer" : "crosshair",
           }}
         />
+        
+        {/* Download Button - Centered overlay */}
+        {showDownloadButton && (
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 20,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "0.75rem",
+            }}
+          >
+            <button
+              onClick={onDownloadClick}
+              style={{
+                padding: "0.75rem 1.5rem",
+                fontSize: "1rem",
+                fontWeight: "500",
+                color: "#ffffff",
+                backgroundColor: "#3b82f6",
+                border: "none",
+                borderRadius: "0.5rem",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "#2563eb";
+                e.target.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = "#3b82f6";
+                e.target.style.transform = "scale(1)";
+              }}
+            >
+              Download CT Data
+            </button>
+            <div
+              style={{
+                fontSize: "0.875rem",
+                color: "var(--text-secondary)",
+                textAlign: "center",
+                maxWidth: "300px",
+              }}
+            >
+              Click to download and load the CT scan study
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Slice Indicator - Only show when data is fully loaded and slice count is calculated */}
@@ -308,6 +592,263 @@ export default function CTViewer({
           </div>
         );
       })()}
+
+      {/* Help Button - Symmetric to slice indicator on the right side */}
+      {!loading && externalNiftiData && (
+        <button
+          onClick={() => setShowHelpDialog(true)}
+          style={{
+            position: "absolute",
+            top: "0.5rem",
+            right: "0.5rem",
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            color: "var(--text-primary)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            padding: "0.25rem 0.5rem",
+            borderRadius: "4px",
+            fontSize: "0.75rem",
+            fontFamily: "monospace",
+            cursor: "pointer",
+            zIndex: 10,
+            transition: "all 0.2s ease",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.25rem",
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = "rgba(0, 0, 0, 0.9)";
+            e.target.style.borderColor = "rgba(255, 255, 255, 0.4)";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+            e.target.style.borderColor = "rgba(255, 255, 255, 0.2)";
+          }}
+        >
+          <span>?</span>
+          <span>Help</span>
+        </button>
+      )}
+
+      {/* Help Dialog */}
+      {showHelpDialog && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.85)",
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "2rem",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowHelpDialog(false);
+            }
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "var(--bg-secondary)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "8px",
+              padding: "1.5rem",
+              maxWidth: "500px",
+              width: "100%",
+              maxHeight: "80vh",
+              overflow: "auto",
+              boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "1.25rem",
+                  fontWeight: "600",
+                  color: "var(--text-primary)",
+                }}
+              >
+                CT Viewer Navigation Guide
+              </h3>
+              <button
+                onClick={() => setShowHelpDialog(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--text-secondary)",
+                  fontSize: "1.5rem",
+                  cursor: "pointer",
+                  padding: "0",
+                  width: "24px",
+                  height: "24px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "4px",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "var(--bg-tertiary)";
+                  e.target.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "transparent";
+                  e.target.style.color = "var(--text-secondary)";
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1.25rem",
+                fontSize: "0.875rem",
+                color: "var(--text-primary)",
+                lineHeight: "1.6",
+              }}
+            >
+              {/* Navigate Slices */}
+              <div>
+                <div
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "0.5rem",
+                    color: "var(--text-primary)",
+                    fontSize: "0.9375rem",
+                  }}
+                >
+                  Navigate Through Slices
+                </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: "1.25rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <li>Scroll wheel: Move forward/backward through slices</li>
+                  <li>Left-click + drag up/down: Navigate through slices</li>
+                </ul>
+              </div>
+
+              {/* Zoom */}
+              <div>
+                <div
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "0.5rem",
+                    color: "var(--text-primary)",
+                    fontSize: "0.9375rem",
+                  }}
+                >
+                  Zoom In/Out
+                </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: "1.25rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <li>Hold Ctrl (or Cmd on Mac) + scroll wheel: Zoom in/out</li>
+                  <li>Zoom range: 0.5x to 5x</li>
+                </ul>
+              </div>
+
+              {/* Pan */}
+              <div>
+                <div
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "0.5rem",
+                    color: "var(--text-primary)",
+                    fontSize: "0.9375rem",
+                  }}
+                >
+                  Pan Image (when zoomed in)
+                </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: "1.25rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <li>Right-click + drag: Move the field of view left/right/up/down</li>
+                  <li>Only available when zoomed in (zoom &gt; 1.0x)</li>
+                </ul>
+              </div>
+
+              {/* View Selection */}
+              <div>
+                <div
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "0.5rem",
+                    color: "var(--text-primary)",
+                    fontSize: "0.9375rem",
+                  }}
+                >
+                  Change View
+                </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: "1.25rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <li>Use the view selector buttons below the viewer</li>
+                  <li>Switch between Axial, Sagittal, and Coronal views</li>
+                </ul>
+              </div>
+
+              {/* Tips */}
+              <div
+                style={{
+                  marginTop: "0.5rem",
+                  padding: "0.75rem",
+                  backgroundColor: "var(--bg-tertiary)",
+                  borderRadius: "4px",
+                  borderLeft: "3px solid #3b82f6",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "0.25rem",
+                    color: "var(--text-primary)",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  💡 Tip
+                </div>
+                <div style={{ color: "var(--text-secondary)", fontSize: "0.8125rem" }}>
+                  Pan offset automatically resets when you change slices or views for easier navigation.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* View Selector - Vertically stacked below slice indicator */}
       <ViewSelector

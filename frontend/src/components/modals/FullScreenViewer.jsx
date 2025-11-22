@@ -15,7 +15,9 @@ export default function FullScreenViewer({
   onViewChange,
   totalSlices,
   niftiData,
-  loading
+  loading,
+  onDownloadClick,
+  downloadTriggered
 }) {
   // Handle ESC key to close
   useEffect(() => {
@@ -119,6 +121,8 @@ export default function FullScreenViewer({
             onMaximize={() => {}} // Already maximized
             niftiData={niftiData}
             loading={loading}
+            onDownloadClick={onDownloadClick}
+            downloadTriggered={downloadTriggered}
           />
         </div>
         <ViewerControls
