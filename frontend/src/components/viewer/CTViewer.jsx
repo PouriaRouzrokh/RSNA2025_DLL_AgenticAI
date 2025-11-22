@@ -34,6 +34,8 @@ export default function CTViewer({
   // Zoom and pan state
   const [zoom, setZoom] = useState(1.0);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [isZooming, setIsZooming] = useState(false);
   
   // Help dialog state
   const [showHelpDialog, setShowHelpDialog] = useState(false);
@@ -192,9 +194,9 @@ export default function CTViewer({
     const baseOffsetX = (width - scaledWidth) / 2;
     const baseOffsetY = (height - scaledHeight) / 2;
     
-    // Apply pan offset (only when zoomed in)
-    const offsetX = baseOffsetX + (zoom > 1.0 ? panOffset.x : 0);
-    const offsetY = baseOffsetY + (zoom > 1.0 ? panOffset.y : 0);
+    // Apply pan offset (always allow panning, but it's most useful when zoomed in)
+    const offsetX = baseOffsetX + panOffset.x;
+    const offsetY = baseOffsetY + panOffset.y;
 
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
@@ -210,10 +212,11 @@ export default function CTViewer({
   const actualTotalSlicesRef = useRef(actualTotalSlices);
   const totalSlicesRef = useRef(totalSlices);
   
-  // Mouse drag state for slice scrolling (left click)
+  // Mouse drag state for slice scrolling (left click) or zooming (Ctrl + left click)
   const isMouseDownRef = useRef(false);
   const lastMouseYRef = useRef(0);
   const lastMouseMoveTimeRef = useRef(0);
+  const isZoomingRef = useRef(false); // Track if Ctrl is held during left click
   
   // Right-click pan state
   const isRightMouseDownRef = useRef(false);
@@ -235,6 +238,7 @@ export default function CTViewer({
   const handleWheel = useCallback(
     (e) => {
       e.preventDefault();
+      e.stopPropagation();
 
       // Check if Ctrl key is pressed (or Cmd on Mac)
       const isZoomMode = e.ctrlKey || e.metaKey;
@@ -336,38 +340,91 @@ export default function CTViewer({
       
       e.preventDefault();
       
-      // Handle left mouse button for slice scrolling
+      // Handle left mouse button
       if (e.button === 0) {
-        isMouseDownRef.current = true;
-        lastMouseYRef.current = e.clientY;
-        lastMouseMoveTimeRef.current = Date.now();
-
-        // Add global mouse event listeners for smooth dragging outside viewer bounds
-        const handleGlobalMouseMove = (moveEvent) => {
-          if (!isMouseDownRef.current) return;
-          const currentY = moveEvent.clientY;
-          const deltaY = currentY - lastMouseYRef.current;
+        const isCtrlPressed = e.ctrlKey || e.metaKey;
+        
+        if (isCtrlPressed) {
+          // Ctrl + Left Click: Zoom mode
+          isMouseDownRef.current = true;
+          isZoomingRef.current = true;
+          setIsZooming(true);
+          lastMouseYRef.current = e.clientY;
           
-          if (Math.abs(deltaY) > 0) {
-            updateSliceFromMovement(deltaY);
+          // Add global mouse event listeners for zooming
+          const handleGlobalMouseMove = (moveEvent) => {
+            if (!isMouseDownRef.current || !isZoomingRef.current) return;
+            const currentY = moveEvent.clientY;
+            const deltaY = lastMouseYRef.current - currentY; // Inverted: drag up = zoom in
+            
+            // Zoom factor: every 10 pixels = 10% zoom change
+            const zoomDelta = deltaY * 0.01;
+            
+            setZoom((prevZoom) => {
+              const newZoom = prevZoom + zoomDelta;
+              // Clamp zoom between 0.5x and 5x
+              const clampedZoom = Math.max(0.5, Math.min(5.0, newZoom));
+              
+              // Reset pan when zooming back to 1.0 or below
+              if (clampedZoom <= 1.0) {
+                setPanOffset({ x: 0, y: 0 });
+              }
+              
+              return clampedZoom;
+            });
+            
             lastMouseYRef.current = currentY;
-          }
-        };
+          };
 
-        const handleGlobalMouseUp = (upEvent) => {
-          if (upEvent.button === 0) {
-            isMouseDownRef.current = false;
-            window.removeEventListener("mousemove", handleGlobalMouseMove);
-            window.removeEventListener("mouseup", handleGlobalMouseUp);
-          }
-        };
+          const handleGlobalMouseUp = (upEvent) => {
+            if (upEvent.button === 0) {
+              isMouseDownRef.current = false;
+              isZoomingRef.current = false;
+              setIsZooming(false);
+              window.removeEventListener("mousemove", handleGlobalMouseMove);
+              window.removeEventListener("mouseup", handleGlobalMouseUp);
+            }
+          };
 
-        window.addEventListener("mousemove", handleGlobalMouseMove);
-        window.addEventListener("mouseup", handleGlobalMouseUp);
+          window.addEventListener("mousemove", handleGlobalMouseMove);
+          window.addEventListener("mouseup", handleGlobalMouseUp);
+        } else {
+          // Normal Left Click: Slice scrolling
+          isMouseDownRef.current = true;
+          isZoomingRef.current = false;
+          setIsZooming(false);
+          lastMouseYRef.current = e.clientY;
+          lastMouseMoveTimeRef.current = Date.now();
+
+          // Add global mouse event listeners for smooth dragging outside viewer bounds
+          const handleGlobalMouseMove = (moveEvent) => {
+            if (!isMouseDownRef.current || isZoomingRef.current) return;
+            const currentY = moveEvent.clientY;
+            const deltaY = currentY - lastMouseYRef.current;
+            
+            if (Math.abs(deltaY) > 0) {
+              updateSliceFromMovement(deltaY);
+              lastMouseYRef.current = currentY;
+            }
+          };
+
+          const handleGlobalMouseUp = (upEvent) => {
+            if (upEvent.button === 0) {
+              isMouseDownRef.current = false;
+              isZoomingRef.current = false;
+              window.removeEventListener("mousemove", handleGlobalMouseMove);
+              window.removeEventListener("mouseup", handleGlobalMouseUp);
+            }
+          };
+
+          window.addEventListener("mousemove", handleGlobalMouseMove);
+          window.addEventListener("mouseup", handleGlobalMouseUp);
+        }
       }
-      // Handle right mouse button for panning (only when zoomed in)
-      else if (e.button === 2 && zoom > 1.0) {
+      // Handle right mouse button for panning
+      else if (e.button === 2) {
         isRightMouseDownRef.current = true;
+        setIsPanning(true);
         lastPanMousePosRef.current = { x: e.clientX, y: e.clientY };
 
         // Add global mouse event listeners for panning
@@ -389,6 +446,7 @@ export default function CTViewer({
         const handleGlobalMouseUp = (upEvent) => {
           if (upEvent.button === 2) {
             isRightMouseDownRef.current = false;
+            setIsPanning(false);
             window.removeEventListener("mousemove", handleGlobalMouseMove);
             window.removeEventListener("mouseup", handleGlobalMouseUp);
           }
@@ -398,14 +456,36 @@ export default function CTViewer({
         window.addEventListener("mouseup", handleGlobalMouseUp);
       }
     },
-    [showDownloadButton, updateSliceFromMovement, zoom]
+    [showDownloadButton, updateSliceFromMovement]
   );
 
   // Handle mouse move (for local movement within viewer)
   const handleMouseMove = useCallback(
     (e) => {
-      // Handle left-click slice scrolling
-      if (isMouseDownRef.current) {
+      // Handle left-click zooming (Ctrl + drag)
+      if (isMouseDownRef.current && isZoomingRef.current) {
+        e.preventDefault();
+        const currentY = e.clientY;
+        const deltaY = lastMouseYRef.current - currentY; // Inverted: drag up = zoom in
+        
+        // Zoom factor: every 10 pixels = 10% zoom change
+        const zoomDelta = deltaY * 0.01;
+        
+        setZoom((prevZoom) => {
+          const newZoom = prevZoom + zoomDelta;
+          const clampedZoom = Math.max(0.5, Math.min(5.0, newZoom));
+          
+          if (clampedZoom <= 1.0) {
+            setPanOffset({ x: 0, y: 0 });
+          }
+          
+          return clampedZoom;
+        });
+        
+        lastMouseYRef.current = currentY;
+      }
+      // Handle left-click slice scrolling (normal drag)
+      else if (isMouseDownRef.current && !isZoomingRef.current) {
         e.preventDefault();
         const currentY = e.clientY;
         const deltaY = currentY - lastMouseYRef.current;
@@ -416,7 +496,7 @@ export default function CTViewer({
         }
       }
       // Handle right-click panning
-      else if (isRightMouseDownRef.current && zoom > 1.0) {
+      else if (isRightMouseDownRef.current) {
         e.preventDefault();
         const currentX = e.clientX;
         const currentY = e.clientY;
@@ -431,22 +511,28 @@ export default function CTViewer({
         lastPanMousePosRef.current = { x: currentX, y: currentY };
       }
     },
-    [updateSliceFromMovement, zoom]
+    [updateSliceFromMovement]
   );
 
   // Handle mouse up
   const handleMouseUp = useCallback((e) => {
     if (e.button === 0) {
       isMouseDownRef.current = false;
+      isZoomingRef.current = false;
+      setIsZooming(false);
     } else if (e.button === 2) {
       isRightMouseDownRef.current = false;
+      setIsPanning(false);
     }
   }, []);
 
   // Handle mouse leave (in case mouse is released outside viewer)
   const handleMouseLeave = useCallback(() => {
     isMouseDownRef.current = false;
+    isZoomingRef.current = false;
+    setIsZooming(false);
     isRightMouseDownRef.current = false;
+    setIsPanning(false);
   }, []);
   
   // Reset pan when slice changes
@@ -479,16 +565,14 @@ export default function CTViewer({
         position: "relative",
         userSelect: "none", // Prevent text selection during drag
       }}
-      onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onContextMenu={(e) => {
-        // Prevent context menu when right-clicking for panning
-        if (zoom > 1.0) {
-          e.preventDefault();
-        }
+        // Always prevent context menu when right-clicking (for panning functionality)
+        // This allows smooth panning without context menu interference
+        e.preventDefault();
       }}
     >
       {/* Viewer Canvas */}
@@ -504,6 +588,7 @@ export default function CTViewer({
           minWidth: 0,
           minHeight: 0,
         }}
+        onWheel={handleWheel}
       >
         <canvas
           ref={canvasRef}
@@ -515,7 +600,13 @@ export default function CTViewer({
             width: "100%",
             height: "100%",
             objectFit: "contain",
-            cursor: showDownloadButton ? "pointer" : "crosshair",
+            cursor: showDownloadButton 
+              ? "pointer" 
+              : isPanning 
+                ? "grabbing" 
+                : isZooming
+                  ? "ns-resize"
+                  : (zoom > 1.0 ? "grab" : "crosshair"),
           }}
         />
         
@@ -784,7 +875,8 @@ export default function CTViewer({
                     color: "var(--text-secondary)",
                   }}
                 >
-                  <li>Hold Ctrl (or Cmd on Mac) + scroll wheel: Zoom in/out</li>
+                  <li>Hold Ctrl (or Cmd on Mac) + left-click + drag up/down: Zoom in/out</li>
+                  <li>Drag up to zoom in, drag down to zoom out</li>
                   <li>Zoom range: 0.5x to 5x</li>
                 </ul>
               </div>
@@ -799,7 +891,7 @@ export default function CTViewer({
                     fontSize: "0.9375rem",
                   }}
                 >
-                  Pan Image (when zoomed in)
+                  Pan Image
                 </div>
                 <ul
                   style={{
@@ -809,7 +901,7 @@ export default function CTViewer({
                   }}
                 >
                   <li>Right-click + drag: Move the field of view left/right/up/down</li>
-                  <li>Only available when zoomed in (zoom &gt; 1.0x)</li>
+                  <li>Useful for exploring different parts of the scan when zoomed in</li>
                 </ul>
               </div>
 
