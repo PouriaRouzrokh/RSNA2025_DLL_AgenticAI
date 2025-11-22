@@ -139,7 +139,10 @@ Create `.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
+
+**Note:** For Vercel deployment, add `GEMINI_API_KEY` to your Vercel environment variables in the project settings.
 
 ## Key Components
 

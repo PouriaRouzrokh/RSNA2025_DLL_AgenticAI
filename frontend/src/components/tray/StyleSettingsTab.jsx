@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import MicrophoneButton from '@/components/report/MicrophoneButton';
 
 export default function StyleSettingsTab({ onOpenModal }) {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -136,18 +137,32 @@ export default function StyleSettingsTab({ onOpenModal }) {
     }}>
       {/* Custom Style Instructions */}
       <div>
-        <label
-          htmlFor="custom-instructions"
-          style={{
-            display: 'block',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            color: 'var(--text-primary)',
-            marginBottom: '0.5rem'
-          }}
-        >
-          Custom Style Instructions
-        </label>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '0.5rem'
+        }}>
+          <label
+            htmlFor="custom-instructions"
+            style={{
+              display: 'block',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              color: 'var(--text-primary)',
+              margin: 0
+            }}
+          >
+            Custom Style Instructions
+          </label>
+          <MicrophoneButton
+            fieldId="custom-style-instructions"
+            currentValue={customInstructions}
+            onTranscriptionComplete={(transcription) => {
+              setCustomInstructions(transcription);
+            }}
+          />
+        </div>
         <textarea
           id="custom-instructions"
           value={customInstructions}

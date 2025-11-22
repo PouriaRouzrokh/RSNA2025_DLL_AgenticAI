@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useReportStore } from '@/hooks/useReportState';
 import { getReportTexts } from '@/utils/ctScanConfig';
 import { getNiftiFileUrl } from '@/utils/niftiFileUrl';
+import MicrophoneButton from './MicrophoneButton';
 
 export default function ReportEditor() {
   const {
@@ -184,18 +185,32 @@ export default function ReportEditor() {
       }}>
         {/* Indication Field */}
         <div style={{ marginBottom: '1.5rem' }}>
-          <label
-            htmlFor="indication"
-            style={{
-              display: 'block',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: 'var(--text-primary)',
-              marginBottom: '0.5rem'
-            }}
-          >
-            Indication
-          </label>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '0.5rem'
+          }}>
+            <label
+              htmlFor="indication"
+              style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: 'var(--text-primary)',
+                margin: 0
+              }}
+            >
+              Indication
+            </label>
+            <MicrophoneButton
+              fieldId="indication"
+              currentValue={indication || indicationPlaceholder}
+              onTranscriptionComplete={(transcription) => {
+                handleFieldChange('indication', transcription);
+              }}
+            />
+          </div>
           <textarea
             id="indication"
             value={indication || indicationPlaceholder}
@@ -262,18 +277,32 @@ export default function ReportEditor() {
 
         {/* Findings Field */}
         <div style={{ marginBottom: '1.5rem' }}>
-          <label
-            htmlFor="findings"
-            style={{
-              display: 'block',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: 'var(--text-primary)',
-              marginBottom: '0.5rem'
-            }}
-          >
-            Findings
-          </label>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '0.5rem'
+          }}>
+            <label
+              htmlFor="findings"
+              style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: 'var(--text-primary)',
+                margin: 0
+              }}
+            >
+              Findings
+            </label>
+            <MicrophoneButton
+              fieldId="findings"
+              currentValue={findings}
+              onTranscriptionComplete={(transcription) => {
+                handleFieldChange('findings', transcription);
+              }}
+            />
+          </div>
           <textarea
             id="findings"
             value={findings}
@@ -314,18 +343,32 @@ export default function ReportEditor() {
 
         {/* Impression Field */}
         <div style={{ marginBottom: '1.5rem' }}>
-          <label
-            htmlFor="impression"
-            style={{
-              display: 'block',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: 'var(--text-primary)',
-              marginBottom: '0.5rem'
-            }}
-          >
-            Impression
-          </label>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '0.5rem'
+          }}>
+            <label
+              htmlFor="impression"
+              style={{
+                display: 'block',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: 'var(--text-primary)',
+                margin: 0
+              }}
+            >
+              Impression
+            </label>
+            <MicrophoneButton
+              fieldId="impression"
+              currentValue={impression}
+              onTranscriptionComplete={(transcription) => {
+                handleFieldChange('impression', transcription);
+              }}
+            />
+          </div>
           <textarea
             id="impression"
             value={impression}

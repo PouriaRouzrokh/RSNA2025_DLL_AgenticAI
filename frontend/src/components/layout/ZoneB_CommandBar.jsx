@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import MicrophoneButton from '@/components/report/MicrophoneButton';
 
 export default function ZoneB_CommandBar() {
   const [instruction, setInstruction] = useState('');
@@ -97,7 +98,7 @@ export default function ZoneB_CommandBar() {
         </div>
 
         {/* Custom Instruction Input */}
-        <div style={{ flex: 1, minWidth: '200px' }}>
+        <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
           <input
             type="text"
             value={instruction}
@@ -106,7 +107,8 @@ export default function ZoneB_CommandBar() {
             disabled={isProcessing}
             style={{
               width: '100%',
-              padding: '0.625rem 1rem',
+              padding: '0.625rem 1rem 0.625rem 1rem',
+              paddingRight: '3rem',
               backgroundColor: 'var(--bg-tertiary)',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-md)',
@@ -128,6 +130,22 @@ export default function ZoneB_CommandBar() {
               }
             }}
           />
+          <div style={{
+            position: 'absolute',
+            right: '0.5rem',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <MicrophoneButton
+              fieldId="custom-instruction"
+              currentValue={instruction}
+              onTranscriptionComplete={(transcription) => {
+                setInstruction(transcription);
+              }}
+            />
+          </div>
         </div>
 
         {/* Execute Button */}
