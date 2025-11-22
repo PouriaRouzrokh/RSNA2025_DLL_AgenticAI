@@ -1,43 +1,71 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import ViewSelector from './ViewSelector';
-import { extractSlice, normalizeSlice, WINDOW_LEVEL_PRESETS, calculateTargetSliceCount } from '@/utils/niftiLoader';
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import ViewSelector from "./ViewSelector";
+import { extractSlice, normalizeSlice, WINDOW_LEVEL_PRESETS, calculateTargetSliceCount } from "@/utils/niftiLoader";
 
-export default function CTViewer({ 
-  currentSlice = 1, 
+export default function CTViewer({
+  currentSlice = 1,
   totalSlices = 20,
   onSliceChange,
   onTotalSlicesChange,
-  currentView = 'axial',
+  currentView = "axial",
   onViewChange,
-  windowLevel = 'soft_tissue',
+  windowLevel = "soft_tissue",
   onMaximize,
   niftiData: externalNiftiData = null,
-  loading: externalLoading = false
+  loading: externalLoading = false,
 }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const [canvasSize, setCanvasSize] = useState({ width: 512, height: 512 });
   // Store niftiData in ref to avoid React DevTools serialization issues with large arrays
   const niftiDataRef = useRef(externalNiftiData);
-  const [loading, setLoading] = useState(externalNiftiData ? false : true);
+  // Derive loading state directly from props
+  const loading = externalNiftiData ? false : externalLoading;
   const [error, setError] = useState(null);
-  const [actualTotalSlices, setActualTotalSlices] = useState(20);
   const [dataVersion, setDataVersion] = useState(0); // Version counter to trigger re-renders
-  const lastMaxSlicesRef = useRef(0); // Track last maxSlices to prevent unnecessary updates
 
   useEffect(() => {
     if (externalNiftiData) {
       niftiDataRef.current = externalNiftiData;
-      setLoading(false);
-      setDataVersion(prev => prev + 1);
-    } else {
-      setLoading(externalLoading);
+      setDataVersion((prev) => prev + 1);
     }
-  }, [externalNiftiData, externalLoading]);
-  
-  // Getter for niftiData
+  }, [externalNiftiData]);
+
+  // Create render-safe version of niftiData (without volume array) using useMemo
+  const niftiDataForRender = useMemo(() => {
+    if (!externalNiftiData) return null;
+    const { volume, ...rest } = externalNiftiData;
+    return rest;
+  }, [externalNiftiData]);
+
+  // Compute total slices using useMemo
+  const actualTotalSlices = useMemo(() => {
+    const niftiData = niftiDataRef.current;
+    if (!niftiData) return totalSlices;
+
+    const { dimensions } = niftiData;
+    if (currentView === "axial") {
+      return dimensions.z;
+    } else if (currentView === "sagittal") {
+      return calculateTargetSliceCount(niftiData, "sagittal");
+    } else if (currentView === "coronal") {
+      return calculateTargetSliceCount(niftiData, "coronal");
+    }
+    return totalSlices;
+    // dataVersion is used to trigger recomputation when niftiData changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentView, dataVersion, totalSlices]);
+
+  // Call callback when total slices change
+  useEffect(() => {
+    if (onTotalSlicesChange && actualTotalSlices !== totalSlices) {
+      onTotalSlicesChange(actualTotalSlices);
+    }
+  }, [actualTotalSlices, onTotalSlicesChange, totalSlices]);
+
+  // Getter for niftiData (for effects/callbacks - not render)
   const niftiData = niftiDataRef.current;
 
   useEffect(() => {
@@ -50,37 +78,9 @@ export default function CTViewer({
     };
 
     updateCanvasSize();
-    window.addEventListener('resize', updateCanvasSize);
-    return () => window.removeEventListener('resize', updateCanvasSize);
+    window.addEventListener("resize", updateCanvasSize);
+    return () => window.removeEventListener("resize", updateCanvasSize);
   }, []);
-
-  useEffect(() => {
-    const niftiData = niftiDataRef.current;
-    if (niftiData) {
-      const { dimensions } = niftiData;
-      let maxSlices = 20;
-      
-      if (currentView === 'axial') {
-        maxSlices = dimensions.z;
-      } else if (currentView === 'sagittal') {
-        // Use resampled slice count if resampling is enabled
-        maxSlices = calculateTargetSliceCount(niftiData, 'sagittal');
-      } else if (currentView === 'coronal') {
-        // Use resampled slice count if resampling is enabled
-        maxSlices = calculateTargetSliceCount(niftiData, 'coronal');
-      }
-
-      // Only update if maxSlices actually changed
-      if (maxSlices !== lastMaxSlicesRef.current) {
-        setActualTotalSlices(maxSlices);
-        lastMaxSlicesRef.current = maxSlices;
-        // Call callback only if provided and value changed
-        if (onTotalSlicesChange) {
-          onTotalSlicesChange(maxSlices);
-        }
-      }
-    }
-  }, [currentView, dataVersion]); // Removed onTotalSlicesChange from dependencies
 
   // Render slice on canvas
   useEffect(() => {
@@ -90,27 +90,27 @@ export default function CTViewer({
     canvas.width = canvasSize.width;
     canvas.height = canvasSize.height;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     const width = canvas.width;
     const height = canvas.height;
 
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
 
     if (loading) {
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '16px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('Loading NIfTI file...', width / 2, height / 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "16px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("Loading NIfTI file...", width / 2, height / 2);
       return;
     }
 
     const niftiData = niftiDataRef.current;
     if (error || !niftiData) {
-      ctx.fillStyle = '#ff6b6b';
-      ctx.font = '14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(error ? `Error: ${error}` : 'No data available', width / 2, height / 2);
+      ctx.fillStyle = "#ff6b6b";
+      ctx.font = "14px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(error ? `Error: ${error}` : "No data available", width / 2, height / 2);
       return;
     }
 
@@ -120,24 +120,30 @@ export default function CTViewer({
     // Validate slice dimensions before creating image data
     const validWidth = Math.max(1, Math.floor(sliceWidth)) || 1;
     const validHeight = Math.max(1, Math.floor(sliceHeight)) || 1;
-    
+
     if (!isFinite(validWidth) || !isFinite(validHeight) || validWidth <= 0 || validHeight <= 0) {
-      ctx.fillStyle = '#ff6b6b';
-      ctx.font = '14px monospace';
-      ctx.textAlign = 'center';
+      ctx.fillStyle = "#ff6b6b";
+      ctx.font = "14px monospace";
+      ctx.textAlign = "center";
       ctx.fillText(`Invalid slice dimensions: ${sliceWidth}x${sliceHeight}`, width / 2, height / 2);
       return;
     }
 
     const preset = WINDOW_LEVEL_PRESETS[windowLevel] || WINDOW_LEVEL_PRESETS.soft_tissue;
-    const normalizedSlice = normalizeSlice(data, niftiData.sclSlope, niftiData.sclInter || 0, preset.window, preset.level);
+    const normalizedSlice = normalizeSlice(
+      data,
+      niftiData.sclSlope,
+      niftiData.sclInter || 0,
+      preset.window,
+      preset.level
+    );
 
-    const tempCanvas = document.createElement('canvas');
+    const tempCanvas = document.createElement("canvas");
     tempCanvas.width = validWidth;
     tempCanvas.height = validHeight;
-    const tempCtx = tempCanvas.getContext('2d');
+    const tempCtx = tempCanvas.getContext("2d");
     const tempImageData = tempCtx.createImageData(validWidth, validHeight);
-    
+
     for (let i = 0; i < normalizedSlice.length; i++) {
       const idx = i * 4;
       const gray = normalizedSlice[i];
@@ -154,13 +160,13 @@ export default function CTViewer({
     const offsetX = (width - scaledWidth) / 2;
     const offsetY = (height - scaledHeight) / 2;
 
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(tempCanvas, offsetX, offsetY, scaledWidth, scaledHeight);
 
-    ctx.strokeStyle = '#60a5fa';
+    ctx.strokeStyle = "#60a5fa";
     ctx.lineWidth = 1;
     ctx.setLineDash([5, 5]);
     ctx.beginPath();
@@ -178,62 +184,65 @@ export default function CTViewer({
   const currentSliceRef = useRef(currentSlice);
   const actualTotalSlicesRef = useRef(actualTotalSlices);
   const totalSlicesRef = useRef(totalSlices);
-  
+
   // Keep refs in sync
   useEffect(() => {
     currentSliceRef.current = currentSlice;
   }, [currentSlice]);
-  
+
   useEffect(() => {
     actualTotalSlicesRef.current = actualTotalSlices;
   }, [actualTotalSlices]);
-  
+
   useEffect(() => {
     totalSlicesRef.current = totalSlices;
   }, [totalSlices]);
-  
-  const handleWheel = useCallback((e) => {
-    if (!onSliceChange) return;
-    e.preventDefault();
-    
-    const now = Date.now();
-    const timeSinceLastWheel = now - lastWheelTimeRef.current;
-    
-    // Throttle to max 1 update per 50ms
-    if (timeSinceLastWheel < 50) {
-      return;
-    }
-    
-    // Clear any pending timeout
-    if (wheelTimeoutRef.current) {
-      clearTimeout(wheelTimeoutRef.current);
-      wheelTimeoutRef.current = null;
-    }
-    
-    lastWheelTimeRef.current = now;
-    
-    const delta = e.deltaY > 0 ? 1 : -1;
-    const niftiData = niftiDataRef.current;
-    const maxSlices = niftiData ? actualTotalSlicesRef.current : totalSlicesRef.current;
-    const currentSliceValue = currentSliceRef.current;
-    const newSlice = currentSliceValue + delta;
-    const clampedSlice = Math.max(1, Math.min(maxSlices, newSlice));
-    
-    // Only update if slice actually changed
-    if (clampedSlice !== currentSliceValue) {
-      onSliceChange(clampedSlice);
-    }
-  }, [onSliceChange]); // Only depend on onSliceChange which should be stable
+
+  const handleWheel = useCallback(
+    (e) => {
+      if (!onSliceChange) return;
+      e.preventDefault();
+
+      const now = Date.now();
+      const timeSinceLastWheel = now - lastWheelTimeRef.current;
+
+      // Throttle to max 1 update per 50ms
+      if (timeSinceLastWheel < 50) {
+        return;
+      }
+
+      // Clear any pending timeout
+      if (wheelTimeoutRef.current) {
+        clearTimeout(wheelTimeoutRef.current);
+        wheelTimeoutRef.current = null;
+      }
+
+      lastWheelTimeRef.current = now;
+
+      const delta = e.deltaY > 0 ? 1 : -1;
+      const niftiData = niftiDataRef.current;
+      const maxSlices = niftiData ? actualTotalSlicesRef.current : totalSlicesRef.current;
+      const currentSliceValue = currentSliceRef.current;
+      const newSlice = currentSliceValue + delta;
+      const clampedSlice = Math.max(1, Math.min(maxSlices, newSlice));
+
+      // Only update if slice actually changed
+      if (clampedSlice !== currentSliceValue) {
+        onSliceChange(clampedSlice);
+      }
+    },
+    [onSliceChange]
+  ); // Only depend on onSliceChange which should be stable
 
   return (
     <div
       style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: '#000000',
-        position: 'relative'
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#000000",
+        position: "relative",
       }}
       onWheel={handleWheel}
     >
@@ -242,13 +251,13 @@ export default function CTViewer({
         ref={containerRef}
         style={{
           flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          position: 'relative',
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          position: "relative",
           minWidth: 0,
-          minHeight: 0
+          minHeight: 0,
         }}
       >
         <canvas
@@ -256,43 +265,43 @@ export default function CTViewer({
           width={canvasSize.width}
           height={canvasSize.height}
           style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
-            cursor: 'crosshair'
+            maxWidth: "100%",
+            maxHeight: "100%",
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            cursor: "crosshair",
           }}
         />
       </div>
 
       {/* Slice Indicator - Only show when data is fully loaded and slice count is calculated */}
       {(() => {
-        const niftiData = niftiDataRef.current;
-        if (loading || !niftiData || !niftiData.dimensions) return null;
-        
-        const { dimensions } = niftiData;
+        // Use state instead of ref for render
+        if (loading || !niftiDataForRender || !niftiDataForRender.dimensions) return null;
+
+        const { dimensions } = niftiDataForRender;
         let expectedSlices = 20;
-        if (currentView === 'axial') expectedSlices = dimensions.z;
-        else if (currentView === 'sagittal') expectedSlices = dimensions.x;
-        else if (currentView === 'coronal') expectedSlices = dimensions.y;
-        
+        if (currentView === "axial") expectedSlices = dimensions.z;
+        else if (currentView === "sagittal") expectedSlices = dimensions.x;
+        else if (currentView === "coronal") expectedSlices = dimensions.y;
+
         // Only show if actualTotalSlices matches expected (meaning it's been calculated)
         if (actualTotalSlices !== expectedSlices) return null;
-        
+
         return (
           <div
             style={{
-              position: 'absolute',
-              top: '0.5rem',
-              left: '0.5rem',
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              color: 'var(--text-primary)',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '4px',
-              fontSize: '0.75rem',
-              fontFamily: 'monospace',
-              zIndex: 10
+              position: "absolute",
+              top: "0.5rem",
+              left: "0.5rem",
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              color: "var(--text-primary)",
+              padding: "0.25rem 0.5rem",
+              borderRadius: "4px",
+              fontSize: "0.75rem",
+              fontFamily: "monospace",
+              zIndex: 10,
             }}
           >
             Slice: {currentSlice} / {actualTotalSlices}
@@ -304,10 +313,9 @@ export default function CTViewer({
       <ViewSelector
         currentView={currentView}
         onViewChange={onViewChange}
-        niftiData={niftiDataRef.current}
+        niftiData={niftiDataForRender}
         windowLevel={windowLevel}
       />
     </div>
   );
 }
-

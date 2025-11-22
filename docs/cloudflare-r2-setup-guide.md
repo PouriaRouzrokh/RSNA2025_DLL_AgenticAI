@@ -45,6 +45,7 @@ If you prefer a custom domain instead:
   {
     "AllowedOrigins": [
       "http://localhost:3000",
+      "http://10.0.0.211:3000",
       "http://10.*.*.*:*",
       "http://192.168.*.*:*",
       "http://172.*.*.*:*",
@@ -61,7 +62,10 @@ If you prefer a custom domain instead:
 
 5. Click **"Save"**
 
-> **Note**: Replace `rsna2025-agenticai.com` with your actual domain. The `*.vercel.app` pattern allows preview deployments to work.
+> **Note**: 
+> - Replace `rsna2025-agenticai.com` with your actual domain. The `*.vercel.app` pattern allows preview deployments to work.
+> - If your local IP address is different from `10.0.0.211`, add your specific IP address (e.g., `http://YOUR_IP:3000`) to the `AllowedOrigins` array. R2 CORS wildcard patterns may not work reliably, so it's best to include your specific IP address explicitly.
+> - Alternatively, access your app via `http://localhost:3000` instead of your IP address to avoid CORS issues.
 
 ## Step 3: Set Up Custom Domain (Optional but Recommended)
 
