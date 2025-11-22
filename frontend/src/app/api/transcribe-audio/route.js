@@ -6,7 +6,7 @@ import { checkRateLimit, getClientIP } from '@/utils/rateLimiter';
  * Works both locally and on Vercel
  * 
  * Security features:
- * - Rate limiting: 10 requests per minute per IP
+ * - Rate limiting: 10 requests per minute per IP (normal), 60 req/min (workshop mode)
  * - Request size validation: Max 20MB
  * - MIME type validation
  * - Field ID validation
@@ -16,12 +16,17 @@ import { checkRateLimit, getClientIP } from '@/utils/rateLimiter';
  * - Using Vercel KV or Upstash for distributed rate limiting
  * - Enabling Vercel Bot Protection in project settings
  * - Adding authentication if this is a private application
+ * - Set WORKSHOP_MODE=true for workshops to increase rate limit to 60 req/min
  */
 export async function POST(request) {
   try {
-    // Rate limiting: 10 requests per minute per IP
+    // Rate limiting: Adaptive based on environment
+    // For workshops: Higher limit (60 req/min) to handle shared IPs and multiple submissions per person
+    // Normal: 10 req/min per IP
     const clientIP = getClientIP(request);
-    const rateLimit = checkRateLimit(clientIP, 10, 60000); // 10 req/min
+    const isWorkshopMode = process.env.WORKSHOP_MODE === 'true';
+    const maxRequests = isWorkshopMode ? 60 : 10; // Higher limit for workshops (allows ~2 req/min per person for 30 people)
+    const rateLimit = checkRateLimit(clientIP, maxRequests, 60000);
     
     if (!rateLimit.allowed) {
       return NextResponse.json(
