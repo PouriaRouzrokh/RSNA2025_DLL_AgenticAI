@@ -5,6 +5,7 @@
  */
 export function getNiftiFileUrl() {
   // Use R2 URL if configured, otherwise use local path
+  // Note: NEXT_PUBLIC_* vars are embedded at build time in Next.js
   const r2Url = process.env.NEXT_PUBLIC_NIFTI_FILE_URL;
   
   if (r2Url) {
@@ -27,17 +28,9 @@ export function getCtScanConfigUrl() {
     // If using R2, assume config is in the same bucket/directory
     // Replace the filename with config filename
     const baseUrl = r2Url.replace(/\/[^/]+\.nii\.gz$/, '');
-    const configUrl = `${baseUrl}/ct_scan_config.json`;
-    if (typeof window !== 'undefined') {
-      console.log('[getCtScanConfigUrl] Using R2 URL:', configUrl);
-    }
-    return configUrl;
+    return `${baseUrl}/ct_scan_config.json`;
   }
   
   // Fallback to local path
-  if (typeof window !== 'undefined') {
-    console.log('[getCtScanConfigUrl] Using local fallback');
-  }
   return '/demo-data/medical_imaging/ct_scan_config.json';
 }
-
