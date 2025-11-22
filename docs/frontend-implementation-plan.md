@@ -12,6 +12,7 @@
 - ✅ **Phase 5**: Command Bar Functionality (with macro checkboxes)
 - ✅ **Phase 6**: Reference Tray Tabs
 - ✅ **Phase 7**: Modals (FocusModal, FullScreenViewer)
+- ✅ **Phase 8**: API Integration (Voice Transcription API route)
 - ✅ **Phase 9**: Data Loading & Management (NIfTI utilities)
 - ✅ **Phase 10**: Polish & UX Enhancements
 
@@ -19,9 +20,15 @@
 - **CT Viewer**: Uses `nifti-reader-js` (not Cornerstone.js)
 - **Macro Controls**: Checkboxes (not buttons) allowing multiple selection
 - **Slice Management**: Preserves slice position per view (axial/sagittal/coronal)
+- **Zoom & Pan**: Ctrl/Cmd + scroll to zoom, right-click drag to pan
 - **Configuration**: JSON file for CT scan rescale values (`ct_scan_config.json`)
-- **Performance**: Supports preprocessed JSON files for faster loading
+- **Performance**: Supports preprocessed JSON files and IndexedDB caching for faster loading
 - **UI Elements**: ViewSelector with thumbnails, resizable Zone C, updated titles
+- **Voice Input**: Microphone button with speech-to-text using Gemini API
+- **Caching**: IndexedDB caching for NIfTI volume data
+- **Cloud Storage**: Support for Cloudflare R2 configuration
+- **Rate Limiting**: In-memory rate limiting for audio transcription API
+- **Help Dialog**: Interactive help guide in CT viewer
 
 ---
 
@@ -202,9 +209,14 @@ npm install nifti-reader-js
 
 **Key Features:**
 - Canvas-based rendering with hardware acceleration
-- Proper window/level presets (Brain, Soft Tissue, Bone, Lung)
-- Crosshair overlay
+- Proper window/level presets (Soft Tissue, Bone, Lung)
+- Zoom controls (Ctrl/Cmd + scroll wheel, 0.5x to 5x range)
+- Pan controls (right-click drag when zoomed in)
+- Slice navigation (mouse wheel, left-click drag)
+- Help dialog with navigation instructions
+- Slice indicator display
 - Loading states and error handling
+- Download/Load button for CT data
 
 ### 3.2 Viewer Controls
 **File:** `components/viewer/ViewerControls.jsx` ✅
@@ -259,23 +271,26 @@ npm install nifti-reader-js
 
 **Implementation:**
 - ✅ Structured form with 4 fields:
-  - Indication (textarea, editable)
-  - Technique (textarea, read-only with default text)
-  - Findings (large textarea, editable)
-  - Impression (textarea, editable)
+  - Indication (textarea, editable) with microphone button
+  - Technique (textarea, read-only with default text from config)
+  - Findings (large textarea, editable) with microphone button
+  - Impression (textarea, editable) with microphone button
 - ✅ Live text editing with real-time updates
 - ✅ Cursor position tracking for text insertion
 - ✅ Character/word count per field
 - ✅ Auto-save to localStorage every 5 seconds
 - ✅ Loads saved report on mount
 - ✅ Header title: "Sample Chest CT scan Report"
+- ✅ Patient information display (name, study date, radiologist name) from config
+- ✅ Voice input via microphone button (speech-to-text)
+- ✅ Loads report texts from CT scan config JSON
 
-### 4.2 Report State Management
+### 4.2 Report State Management ✅ COMPLETED
 **File:** `hooks/useReportState.js`
 
-**Tasks:**
-- [ ] Create Zustand store for report state
-- [ ] Implement state structure:
+**Implementation:**
+- ✅ Created Zustand store for report state
+- ✅ Implemented state structure:
 ```javascript
 {
   indication: "",
@@ -285,7 +300,7 @@ npm install nifti-reader-js
   cursorPosition: { field: "", position: 0 }
 }
 ```
-- [ ] Add actions: updateField, setCursorPosition, resetReport
+- ✅ Added actions: updateField, setCursorPosition, resetReport, getReport
 
 ---
 
@@ -369,8 +384,11 @@ npm install nifti-reader-js
 **File:** `components/tray/StyleSettingsTab.jsx` ✅
 
 **Implementation:**
-- ✅ Basic tab structure created
-- ✅ Placeholder for future file upload functionality
+- ✅ Custom style instructions textarea with microphone button
+- ✅ Prior radiologist reports list (loaded from demo data)
+- ✅ File upload area for PDF/Markdown/Text files
+- ✅ Uploaded files list with delete functionality
+- ✅ Click to view reports in FocusModal
 
 ---
 
@@ -410,46 +428,58 @@ npm install nifti-reader-js
 
 ---
 
-## Phase 8: API Integration
+## Phase 8: API Integration ✅ COMPLETED
 
-### 8.1 API Utility Setup
+### 8.1 API Utility Setup ✅ COMPLETED
 **File:** `utils/api.js`
 
-**Tasks:**
-- [ ] Create axios instance with base URL from env
-- [ ] Implement error handling wrapper
-- [ ] Add request/response interceptors
-- [ ] Implement timeout handling (30 seconds)
+**Implementation:**
+- ✅ Created axios instance with base URL from env
+- ✅ Implemented error handling wrapper
+- ✅ Added request/response interceptors
+- ✅ Implemented timeout handling (30 seconds)
+- ✅ Implemented `processReport` function with macro mapping
 
-### 8.2 Agent API Hook
+### 8.2 Agent API Hook ✅ COMPLETED
 **File:** `hooks/useAgentAPI.js`
 
-**Tasks:**
-- [ ] Create custom hook for agent interaction
-- [ ] Implement `processReport` function:
+**Implementation:**
+- ✅ Created custom hook for agent interaction
+- ✅ Implemented `executeProcessReport` function:
 ```javascript
-async function processReport({
+async function executeProcessReport({
   currentReport,
   instruction,
-  modeButton
+  selectedMacros
 }) {
   // POST to /agent/process
   // Return response with diff and agent_thoughts
 }
 ```
-- [ ] Handle loading states
-- [ ] Handle error states
-- [ ] Store agent thoughts for display
+- ✅ Handle loading states
+- ✅ Handle error states
+- ✅ Store agent thoughts for display
 
-### 8.3 Execute Flow Implementation
+### 8.3 Voice Transcription API ✅ COMPLETED
+**File:** `app/api/transcribe-audio/route.js`
+
+**Implementation:**
+- ✅ Created Next.js API route for audio transcription
+- ✅ Uses Google Gemini API (gemini-2.5-flash model)
+- ✅ Rate limiting (10 req/min normal, 60 req/min workshop mode)
+- ✅ Audio format validation and conversion
+- ✅ File size validation (20MB limit)
+- ✅ Field ID validation
+- ✅ Error handling and logging
+
+### 8.4 Execute Flow Implementation
 **Integration across components**
 
-**Tasks:**
-- [ ] Wire up Execute button to `processReport`
-- [ ] Display processing indicator during API call
-- [ ] Apply diff to report fields upon success
-- [ ] Show agent thoughts in command bar (expandable)
-- [ ] Handle errors gracefully with user-friendly messages
+**Status:**
+- ✅ API utilities ready for backend integration
+- ⚠️ Execute button currently shows placeholder processing (backend not implemented)
+- ⚠️ Agent thoughts display ready (waiting for backend)
+- ⚠️ Error handling ready (waiting for backend)
 
 ---
 
@@ -464,22 +494,30 @@ async function processReport({
 - [ ] Test file loading from public directory
 
 ### 9.2 File Loading Utilities ✅ COMPLETED
-**Files:** `utils/niftiLoader.js`, `utils/ctScanConfig.js`, `utils/api.js`
+**Files:** `utils/niftiLoader.js`, `utils/ctScanConfig.js`, `utils/niftiCache.js`, `utils/niftiFileUrl.js`, `utils/api.js`
 
 **Implementation:**
-- ✅ `loadNiftiFile()` - Loads NIfTI files or preprocessed JSON
+- ✅ `loadNiftiFile()` - Loads NIfTI files or preprocessed JSON with caching
 - ✅ `loadCTScanConfig()` - Loads JSON configuration for rescale values
 - ✅ `getRescaleValues()` - Gets rescale intercept/slope for specific CT scan
-- ✅ `extractSlice()` - Extracts slices from volume
+- ✅ `getReportTexts()` - Gets report texts (indication, technique, patient info) from config
+- ✅ `extractSlice()` - Extracts slices from volume with resampling support
 - ✅ `normalizeSlice()` - Applies window/level transformations
 - ✅ `applyWindowLevel()` - CT windowing calculations
+- ✅ `calculateTargetSliceCount()` - Calculates target slices for aspect ratio correction
+- ✅ `cacheNiftiData()` - Caches NIfTI volume data in IndexedDB
+- ✅ `loadCachedNiftiData()` - Loads cached data from IndexedDB
+- ✅ `hasCachedData()` - Checks if cached data exists
+- ✅ `getNiftiFileUrl()` - Gets NIfTI file URL (supports cloud/local)
+- ✅ `shouldUseCloudFiles()` - Checks if cloud files should be used
 - ✅ Error handling for missing files
 - ✅ Support for preprocessed JSON files (faster loading)
+- ✅ IndexedDB caching with 7-day expiration
 
 **CT Scan Configuration:**
 - JSON file: `/demo-data/medical_imaging/ct_scan_config.json`
-- Format: Array of objects with `file_path`, `rescale_intercept`, `rescale_slope`
-- Allows manual configuration of rescale values per CT scan
+- Format: Array of objects with `file_path`, `rescale_intercept`, `rescale_slope`, `indication`, `technique`, `patient_name`, `radiologist_name`, `study_date`
+- Allows manual configuration of rescale values and report metadata per CT scan
 
 ---
 
@@ -589,11 +627,13 @@ async function processReport({
 
 ## Future Enhancements (Post-Workshop)
 
-- [ ] Speech-to-text integration for dictation
+- ✅ Speech-to-text integration for dictation (COMPLETED - using Gemini API)
 - [ ] Real-time collaboration features
 - [ ] Advanced CT viewing (MPR, 3D rendering)
 - [ ] Report templates library
 - [ ] Export report to PDF
 - [ ] Integration with PACS systems
+- [ ] Backend agent pipeline integration
+- [ ] Distributed rate limiting (Vercel KV or Upstash)
 
 

@@ -11,20 +11,29 @@ This frontend application provides a comprehensive radiology reporting interface
 ### 🏥 CT Viewer
 
 - **NIfTI File Support**: Load and display CT scans in NIfTI format using `nifti-reader-js`
-- **Multi-View Support**: Axial, Sagittal, and Coronal views with thumbnail previews
-- **Window/Level Presets**: Brain, Soft Tissue, Bone, and Lung presets
-- **Slice Navigation**: Mouse wheel scrolling through slices
+- **Multi-View Support**: Axial, Sagittal, and Coronal views with live thumbnail previews
+- **Window/Level Presets**: Soft Tissue, Bone, and Lung presets
+- **Zoom Controls**: Ctrl/Cmd + scroll wheel to zoom (0.5x to 5x range)
+- **Pan Controls**: Right-click drag to pan when zoomed in
+- **Slice Navigation**: Mouse wheel scrolling or left-click drag through slices
 - **Slice Preservation**: Remembers last-viewed slice for each view orientation
 - **Fullscreen Mode**: Maximize viewer with responsive canvas sizing
+- **Help Dialog**: Interactive help guide with navigation instructions
 - **Preprocessed Files**: Support for faster loading via preprocessed JSON files
+- **IndexedDB Caching**: Caches parsed volume data for instant subsequent loads
+- **Cloud Storage**: Support for Cloudflare R2 configuration
 - **Configuration**: JSON-based rescale intercept/slope configuration per CT scan
+- **Download/Load Button**: Button to download or load CT data (supports cache detection)
 
 ### 📝 Report Editor
 
 - **Structured Fields**: Indication, Technique, Findings, and Impression sections
+- **Voice Input**: Microphone button for speech-to-text transcription in all editable fields
 - **Auto-save**: Automatic saving to localStorage every 5 seconds
 - **Character/Word Count**: Real-time counts for each field
 - **Cursor Tracking**: Tracks cursor position for text insertion
+- **Patient Information**: Displays patient name, study date, and radiologist name from config
+- **Config-Driven Content**: Loads indication and technique text from CT scan config JSON
 
 ### 🤖 Command Bar
 
@@ -40,13 +49,15 @@ This frontend application provides a comprehensive radiology reporting interface
 
 ### 📚 Reference Tray
 
-- **Collapsible Design**: Resizable panel (15%-60% height range)
+- **Collapsible Design**: Resizable panel (15%-60% height range) with drag handle
+- **Persistent State**: Saves collapse state and height preference in localStorage
 - **Four Tabs**:
-  - **Prior Reports**: View historical imaging reports
-  - **EHR Data**: Patient demographics, lab results, medications, clinical notes
-  - **Guidelines**: Medical guidelines and protocols
-  - **Style Settings**: User-uploaded report examples (future)
+  - **Prior Reports**: View historical imaging reports with date sorting and summaries
+  - **EHR Data**: Patient demographics, lab results with trends table, medications, clinical notes
+  - **Guidelines**: Medical guidelines and protocols (ACR Guidelines, Institutional Protocols)
+  - **Style Settings**: Custom style instructions with voice input, prior radiologist reports, file upload area
 - **Focus Modal**: Full-screen document viewing with markdown rendering
+- **Click to View**: Click any document item to open in focus modal
 
 ## Technology Stack
 
@@ -58,6 +69,8 @@ This frontend application provides a comprehensive radiology reporting interface
 - **HTTP Client**: Axios
 - **Markdown**: react-markdown
 - **PDF**: react-pdf
+- **Voice Input**: Web Audio API + Google Gemini API for speech-to-text
+- **Caching**: IndexedDB for NIfTI volume data
 
 ## Project Structure
 
@@ -197,10 +210,17 @@ Demo data is located in `/public/demo-data/`:
 
 ### Window/Level Presets
 
-- Brain: Window 80, Level 40
 - Soft Tissue: Window 400, Level 50
-- Bone: Window 2000, Level 400
+- Bone: Window 2000, Level 300
 - Lung: Window 1500, Level -600
+
+### Voice Input
+
+- Microphone button available in all editable report fields
+- Records audio up to 30 seconds
+- Converts audio to WAV format for API compatibility
+- Uses Google Gemini API (gemini-2.5-flash) for transcription
+- Appends transcription to current field value
 
 ## Browser Support
 
@@ -222,11 +242,24 @@ Demo data is located in `/public/demo-data/`:
 
 The frontend communicates with the backend via REST API:
 
-- **POST /agent/process**: Process report with AI agents
+- **POST /agent/process**: Process report with AI agents (backend not yet implemented)
   - Request: `{ current_report, instruction, mode_button }`
   - Response: `{ status, diff, agent_thoughts }`
 
-See `src/utils/api.js` for API client implementation.
+### Voice Transcription API
+
+The frontend includes a voice transcription API route:
+
+- **POST /api/transcribe-audio**: Transcribe audio using Google Gemini API
+  - Request: `{ audioData: base64, mimeType: 'audio/wav', fieldId: string }`
+  - Response: `{ transcription: string, fieldId: string }`
+  - Features:
+    - Rate limiting (10 req/min normal, 60 req/min workshop mode)
+    - Audio format validation and conversion
+    - File size validation (20MB limit)
+    - Field ID validation
+
+See `src/utils/api.js` for API client implementation and `src/app/api/transcribe-audio/route.js` for transcription API.
 
 ## Future Enhancements
 

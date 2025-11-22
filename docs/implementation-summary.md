@@ -49,11 +49,13 @@ This document provides a high-level overview of the implementation plan for the 
 
 #### Week 2: Core Components ✅ COMPLETED
 - ✅ Implemented CT Viewer (nifti-reader-js)
-- ✅ Built Report Editor with 4 fields
+- ✅ Built Report Editor with 4 fields and voice input
 - ✅ Added state management (Zustand)
-- ✅ Created ViewSelector component with thumbnails
+- ✅ Created ViewSelector component with live thumbnails
 - ✅ Implemented FullScreenViewer modal
 - ✅ Added JSON configuration for CT scan rescale values
+- ✅ Implemented zoom and pan controls
+- ✅ Added help dialog in CT viewer
 
 #### Week 3: Interactive Features ✅ COMPLETED
 - ✅ Built Command Bar with macro checkboxes (5 macros)
@@ -61,6 +63,9 @@ This document provides a high-level overview of the implementation plan for the 
 - ✅ Created Focus Modal for documents
 - ✅ Added resizable Zone C with drag handle
 - ✅ Implemented collapse/expand functionality
+- ✅ Added voice transcription API route
+- ✅ Implemented IndexedDB caching for NIfTI files
+- ✅ Added rate limiting for audio API
 
 #### Week 4: Integration & Polish
 - Connect to backend API (mock at first)
@@ -225,12 +230,19 @@ mkdir -p data/{clinical_data,prior_imaging,guidelines,medical_imaging}
 3. ✅ Responsive three-zone layout with resizable Zone C
 4. ✅ Macro checkboxes (5 options) with multiple selection
 5. ✅ Clear loading/error states
-6. ✅ ViewSelector with thumbnail previews
+6. ✅ ViewSelector with live thumbnail previews
 7. ✅ FullScreenViewer modal with proper sizing
 8. ✅ Slice preservation per view
-9. ✅ JSON configuration for CT scan rescale values
-10. ✅ Preprocessed file support for faster loading
-11. ✅ Updated titles: "RSNA 2025 DLL • An Introduction to Agentic AI in Radiology" and "Sample Chest CT scan Report"
+9. ✅ JSON configuration for CT scan rescale values and report metadata
+10. ✅ Preprocessed file support and IndexedDB caching for faster loading
+11. ✅ Updated titles: "RSNA 2025 DLL PACS Simulator • An Introduction to Agentic AI in Radiology" and "Sample Chest CT scan Report"
+12. ✅ Voice input with speech-to-text (Gemini API)
+13. ✅ Zoom and pan controls in CT viewer
+14. ✅ Help dialog with navigation instructions
+15. ✅ Cloud storage support (Cloudflare R2)
+16. ✅ Rate limiting for audio transcription
+17. ✅ Patient information display in report editor
+18. ✅ Style Settings tab with file upload
 
 ### Backend
 1. ✅ <5 second response time

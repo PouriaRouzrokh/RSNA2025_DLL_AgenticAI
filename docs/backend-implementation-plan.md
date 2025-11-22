@@ -1,5 +1,9 @@
 # Backend Implementation Plan
 
+**Status**: ⚠️ **NOT YET IMPLEMENTED** - Backend currently contains only a placeholder `main.py` file.
+
+**Note**: The frontend includes a voice transcription API route (`/api/transcribe-audio`) that uses Google Gemini API directly. This is a frontend-only feature that works independently of the backend agent pipeline.
+
 ## Phase 1: Project Setup & Foundation (Priority: SECOND - After Frontend)
 
 ### 1.1 Initialize FastAPI Project
