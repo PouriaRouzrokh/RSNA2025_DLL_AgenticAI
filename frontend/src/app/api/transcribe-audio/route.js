@@ -1,16 +1,100 @@
 import { NextResponse } from 'next/server';
+import { checkRateLimit, getClientIP } from '@/utils/rateLimiter';
 
 /**
  * API route for transcribing audio using Gemini API
  * Works both locally and on Vercel
+ * 
+ * Security features:
+ * - Rate limiting: 10 requests per minute per IP
+ * - Request size validation: Max 20MB
+ * - MIME type validation
+ * - Field ID validation
+ * - CORS protection (implicit via Next.js same-origin policy)
+ * 
+ * Note: For production, consider:
+ * - Using Vercel KV or Upstash for distributed rate limiting
+ * - Enabling Vercel Bot Protection in project settings
+ * - Adding authentication if this is a private application
  */
 export async function POST(request) {
   try {
+    // Rate limiting: 10 requests per minute per IP
+    const clientIP = getClientIP(request);
+    const rateLimit = checkRateLimit(clientIP, 10, 60000); // 10 req/min
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': Math.ceil((rateLimit.resetTime - Date.now()) / 1000).toString(),
+            'X-RateLimit-Limit': '10',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': new Date(rateLimit.resetTime).toISOString()
+          }
+        }
+      );
+    }
+
     const { audioData, mimeType, fieldId } = await request.json();
 
+    // Validate required fields
     if (!audioData) {
       return NextResponse.json(
         { error: 'No audio data provided' },
+        { status: 400 }
+      );
+    }
+
+    // Validate audio data size (20MB limit for Gemini API)
+    // Base64 encoded data is ~33% larger than original
+    const base64Size = audioData.length;
+    const estimatedSize = (base64Size * 3) / 4;
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    
+    if (estimatedSize > maxSize) {
+      return NextResponse.json(
+        { error: 'Audio file is too large. Maximum size is 20MB.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate MIME type (only allow supported audio formats)
+    const allowedMimeTypes = [
+      'audio/wav',
+      'audio/mp3',
+      'audio/mpeg',
+      'audio/aiff',
+      'audio/aac',
+      'audio/ogg',
+      'audio/flac'
+    ];
+    
+    const audioMimeType = mimeType || 'audio/wav';
+    if (!allowedMimeTypes.includes(audioMimeType)) {
+      return NextResponse.json(
+        { error: `Unsupported audio format. Supported formats: ${allowedMimeTypes.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate fieldId (optional but helps prevent abuse)
+    const allowedFieldIds = [
+      'indication',
+      'findings',
+      'impression',
+      'custom-instruction',
+      'custom-style-instructions'
+    ];
+    
+    if (fieldId && !allowedFieldIds.includes(fieldId)) {
+      return NextResponse.json(
+        { error: 'Invalid field ID' },
         { status: 400 }
       );
     }
@@ -90,6 +174,12 @@ export async function POST(request) {
     return NextResponse.json({
       transcription: transcription.trim(),
       fieldId: fieldId,
+    }, {
+      headers: {
+        'X-RateLimit-Limit': '10',
+        'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+        'X-RateLimit-Reset': new Date(rateLimit.resetTime).toISOString()
+      }
     });
   } catch (error) {
     console.error('Transcription error:', error);
