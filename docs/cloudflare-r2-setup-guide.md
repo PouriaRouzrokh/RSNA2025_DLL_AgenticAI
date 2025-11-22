@@ -213,10 +213,39 @@ https://cdn.rsna2025-agenticai.com/ct_scan.nii.gz
 ```
 (Replace with your actual custom domain)
 
-## Step 6: Configure Environment Variables in Vercel
+## Step 6: Configure Environment Variables
+
+### For Local Development
+
+Create a `.env.local` file in the `frontend` directory:
+
+```bash
+cd frontend
+cat > .env.local << EOF
+# File Source Configuration
+# Set to 'true' to use cloud files (R2), 'false' to use local files
+NEXT_PUBLIC_USE_CLOUD_FILES=true
+
+# R2 Cloud File URL (only used if NEXT_PUBLIC_USE_CLOUD_FILES is true)
+NEXT_PUBLIC_NIFTI_FILE_URL=https://pub-xxxxx.r2.dev/ct_scan.nii.gz
+EOF
+```
+
+Replace `https://pub-xxxxx.r2.dev/ct_scan.nii.gz` with your actual R2 URL.
+
+**To switch between local and cloud files:**
+- Set `NEXT_PUBLIC_USE_CLOUD_FILES=false` to use local files (`/demo-data/medical_imaging/ct_scan.nii.gz`)
+- Set `NEXT_PUBLIC_USE_CLOUD_FILES=true` to use R2 cloud files
+- Restart your dev server after changing: `npm run dev`
+
+### For Vercel Deployment
 
 1. Go to your Vercel project → **Settings** → **Environment Variables**
-2. Add the following variable:
+2. Add the following variables:
+   - **Name**: `NEXT_PUBLIC_USE_CLOUD_FILES`
+   - **Value**: `true` (to use R2) or `false` (to use local files)
+   - **Environments**: Select Production, Preview, and Development
+   
    - **Name**: `NEXT_PUBLIC_NIFTI_FILE_URL`
    - **Value**: Your R2 public URL (from Step 5)
    - **Environments**: Select Production, Preview, and Development
@@ -229,11 +258,13 @@ https://cdn.rsna2025-agenticai.com/ct_scan.nii.gz
   - Note: URL does not include bucket name in the path
 - **Custom Domain**: `https://cdn.rsna2025-agenticai.com/ct_scan.nii.gz`
 
-## Step 7: Update Your Code
+## Step 7: How It Works
 
-The code has been updated to use the environment variable. The app will:
-- Use `NEXT_PUBLIC_NIFTI_FILE_URL` if set (from R2)
-- Fall back to `/demo-data/medical_imaging/ct_scan.nii.gz` for local development
+The app uses a configuration flag to determine file source:
+- If `NEXT_PUBLIC_USE_CLOUD_FILES=true`: Uses R2 cloud files (`NEXT_PUBLIC_NIFTI_FILE_URL`)
+- If `NEXT_PUBLIC_USE_CLOUD_FILES=false` or not set: Uses local files (`/demo-data/medical_imaging/ct_scan.nii.gz`)
+
+This allows you to easily switch between local development and cloud deployment without changing code.
 
 ## Step 8: Redeploy on Vercel
 
