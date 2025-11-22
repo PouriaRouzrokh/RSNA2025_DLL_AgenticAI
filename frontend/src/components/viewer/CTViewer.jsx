@@ -313,7 +313,7 @@ export default function CTViewer({
       <ViewSelector
         currentView={currentView}
         onViewChange={onViewChange}
-        niftiData={niftiDataForRender}
+        niftiData={externalNiftiData}
         windowLevel={windowLevel}
       />
     </div>
