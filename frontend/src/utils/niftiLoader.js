@@ -589,7 +589,6 @@ export function normalizeSlice(sliceData, sclSlope, sclInter, window, level) {
  * Window/Level presets
  */
 export const WINDOW_LEVEL_PRESETS = {
-  brain: { window: 80, level: 40 },
   soft_tissue: { window: 400, level: 50 },
   bone: { window: 2000, level: 300 },
   lung: { window: 1500, level: -600 }

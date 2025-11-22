@@ -10,7 +10,6 @@ export default function ViewerControls({
   isMaximized = false
 }) {
   const windowLevelPresets = [
-    { id: 'brain', label: 'Brain' },
     { id: 'soft_tissue', label: 'Soft Tissue' },
     { id: 'bone', label: 'Bone' },
     { id: 'lung', label: 'Lung' }
