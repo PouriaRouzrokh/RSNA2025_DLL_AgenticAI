@@ -8,6 +8,7 @@ async function loadPreprocessedFile(url) {
     const response = await fetch(preprocessedUrl);
     
     if (!response.ok) {
+      // Preprocessed file doesn't exist - this is normal, will fall back to NIfTI file
       return null;
     }
     
